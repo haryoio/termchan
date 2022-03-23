@@ -148,8 +148,9 @@ impl Thread {
         } else {
             self.newest_url()
         };
+        // TODO: 保存したcookieをファイルから読み込んで使う
         let cookie = "READJS=\"off\";SUBBACK_STYLE=\"1\"";
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder().build().unwrap();
         let body = client.get(&url)
             .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
             .header("Accept-Encoding", "gzip, deflate, br")
@@ -167,9 +168,9 @@ impl Thread {
             .send().await;
 
         if let Ok(body) = body {
-            let byte = body.bytes().await.unwrap();
-
-            println!("bytes {:?}", byte);
+            let bytes = body.bytes().await.unwrap();
+            let html = util::sjis_to_utf8(&bytes);
+            println!("html {:?}", html);
         }
 
         self
