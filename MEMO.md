@@ -14,9 +14,22 @@
   - 保守
 - GUI
   - GUI
-  
+
+## データ出力
+
+板一覧
+スレ一覧
+レス一覧
+
+## データ処理
+
+ShiftJISからUTF-8へ変換
+UTF-8からShift-JISへの変換
+スレ一覧のHTMLからスレ一覧を抽出
+スレHTMLからレス一覧を抽出
 
 設定
+
 - tomlによる設定
   - 板一覧URLを設定
   - 浪人ログインなど
@@ -30,4 +43,28 @@ TODO
 
 [] レス
 [] プロキシを介したアクセス
-[] 
+[]
+
+## 板一覧の取得
+
+
+## スレッド一覧の取得
+
+```url
+https://<サーバ名>/板キー/subback.html
+```
+
+```html
+<small>
+  <div>
+    <a href="<thread_id>">[index]: [title]（[count]）</a>
+  </div>
+</small>
+```
+
+## スレッドの取得
+
+```url
+https://mi.5ch.net/test/read.cgi/news4vip/1647788488/l50
+https://<サーバ名>/test/read.cgi/<板キー>/<スレッドID>
+```
