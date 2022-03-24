@@ -15,16 +15,13 @@ pub struct Board {
 }
 
 impl Board {
-    pub async fn new(url: &str) -> Board {
+    pub async fn new(url: &str) -> anyhow::Result<Board> {
         //  https://<server_name>/<board_key>/subback.html
         let url = url::Url::parse(&url).expect("url parse error");
         // スレッド一覧を取得
-        let html = Page::new(&url.as_str()).await.get_html();
+        let html = Page::new(&url.as_str()).await?.get_html();
 
-        Board {
-            url,
-            html: html.to_string(),
-        }
+        anyhow::Ok(Board { url, html })
     }
 
     pub fn get_url(&self) -> &Url {
@@ -65,11 +62,11 @@ impl Board {
         threads
     }
 
-    pub async fn laod(&self) -> Self {
-        let html = Page::new(&self.url.as_str()).await.get_html();
-        Board {
+    pub async fn laod(&self) -> anyhow::Result<Self> {
+        let html = Page::new(&self.url.as_str()).await?.get_html();
+        anyhow::Ok(Board {
             url: self.url.clone(),
             html: html.to_string(),
-        }
+        })
     }
 }

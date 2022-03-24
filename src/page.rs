@@ -33,7 +33,7 @@ impl Page {
         let res = client.send().await.context("failed to get html")?;
         let bytes = res.bytes().await.context("failed to get bytes")?;
         let html = encoder::sjis_to_utf8(&bytes);
-        Ok(Page {
+        anyhow::Ok(Page {
             url: url.to_string(),
             html,
         })

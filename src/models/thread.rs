@@ -1,5 +1,7 @@
 use std::cell::{Cell, RefCell};
 
+use anyhow::Context;
+
 use crate::{
     models::reply::{Replies, Reply},
     page::Page,
@@ -34,18 +36,34 @@ impl Thread {
         }
     }
 
+    pub fn get_server_name(&self) -> &str {
+        &self.server_name
+    }
+
+    pub fn get_board_key(&self) -> &str {
+        &self.board_key
+    }
+
+    pub fn get_id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn get_title(&self) -> &str {
+        &self.title
+    }
+
     // スレッドのURLを取得
     // https://<server_name>/test/read.cgi/<board_key>/<thread_id>/
-    pub fn get_all_url(&self) -> String {
+    fn get_all_url(&self) -> String {
         format!(
-            "https://{}/{}/read.cgi/{}/{}/",
-            self.server_name, self.board_key, self.board_key, self.id
+            "https://{}/test/read.cgi/{}/{}/",
+            self.server_name, self.board_key, self.id
         )
     }
 
     // 最新レスのURLを取得
     // https://<server_name>/test/read.cgi/<board_key>/<thread_id>/<latest_res>-n
-    pub fn get_latest_url(&self) -> String {
+    fn get_latest_url(&self) -> String {
         format!(
             "https://{}/test/read.cgi/{}/{}/{}-n/",
             self.server_name,
@@ -59,7 +77,11 @@ impl Thread {
         self.is_stopdone.get()
     }
 
-    pub fn parse(html: &str) -> Replies {
+    pub fn parse(&self, html: &str) -> Replies {
+        if parser::is_stopdone(&html) {
+            self.is_stopdone.set(true);
+        }
+
         let mut replies = Vec::new();
         for cap in parser::parse_replies(html) {
             let group = (
@@ -76,32 +98,42 @@ impl Thread {
                 }
             }
         }
-
         replies
     }
 
-    pub async fn reload(&self) -> &Thread {
+    pub async fn reload(&self) -> anyhow::Result<&Thread> {
         let url = if self.is_first_fetch.get() {
-            self.get_latest_url()
-        } else {
             self.get_all_url()
+        } else {
+            self.get_latest_url()
         };
 
         // dat落ちならリロードしない
         if self.is_stopdone.get() {
-            return self;
+            return anyhow::Result::Ok(self);
         };
 
-        let html = Page::new(&url).await.get_html();
-        let mut replies = Self::parse(html.as_str());
+        let html = Page::new(&url).await.context("page error")?;
+        let html = html.get_html();
+        let mut replies = self.parse(html.as_str());
+        let replies_count = replies.len();
 
         // 新着レスがあれば追加
-        if replies.len() > 1 {
+        if self.is_first_fetch.get() {
             self.replies.borrow_mut().append(&mut replies);
-            self.count.set(self.count.get() + replies.len() - 1);
+            self.count.set(replies_count);
+        } else if replies_count > 1 {
+            self.replies.borrow_mut().append(&mut replies);
+            self.count.set(self.count.get() + replies_count - 1);
         }
 
-        self
+        anyhow::Result::Ok(self)
+    }
+
+    pub async fn get_replies(&self) -> anyhow::Result<Replies> {
+        self.reload().await?;
+        let replies = &*self.replies.borrow();
+        anyhow::Result::Ok(replies.to_vec())
     }
 }
 
