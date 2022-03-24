@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "encoding_rs",
+ "lazy_static",
  "regex",
  "reqwest",
  "scraper",

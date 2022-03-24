@@ -1,5 +1,5 @@
-pub fn sjis_to_utf8(sjis: &[u8]) -> String {
-    let (res, _, _) = encoding_rs::SHIFT_JIS.decode(sjis);
+pub fn sjis_to_utf8(bytes: &[u8]) -> String {
+    let (res, _, _) = encoding_rs::SHIFT_JIS.decode(bytes);
     res.to_owned().to_string()
 }
 pub fn is_gzip(buf: &[u8]) -> bool {
