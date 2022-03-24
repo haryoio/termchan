@@ -18,7 +18,7 @@ impl Board {
     pub async fn new(url: &str) -> Board {
         //  https://<server_name>/<board_key>/subback.html
         let url = url::Url::parse(&url).expect("url parse error");
-        // 板一覧を取得
+        // スレッド一覧を取得
         let html = Page::new(&url.as_str()).await.get_html();
 
         Board {
@@ -63,5 +63,13 @@ impl Board {
         }
 
         threads
+    }
+
+    pub async fn laod(&self) -> Self {
+        let html = Page::new(&self.url.as_str()).await.get_html();
+        Board {
+            url: self.url.clone(),
+            html: html.to_string(),
+        }
     }
 }

@@ -1,5 +1,7 @@
 use std::str::Bytes;
 
+use anyhow::Context;
+
 use crate::utils::{encoder, headers};
 
 pub struct Page {
@@ -8,13 +10,13 @@ pub struct Page {
 }
 
 impl Page {
-    pub async fn new(url: &str) -> Page {
+    pub async fn new(url: &str) -> anyhow::Result<Page> {
         // URLからホスト名を取得
         let url = url.to_owned();
         let host = url::Url::parse(&url)
-            .unwrap()
+            .context("url parse error")?
             .host_str()
-            .unwrap()
+            .context("host parse error")?
             .to_string();
 
         let cookie = headers::gen_cookie(None);
@@ -24,22 +26,17 @@ impl Page {
         let client = reqwest::Client::builder()
             .default_headers(headers)
             .build()
-            .unwrap();
+            .context("failed to create client")?
+            .get(&url);
 
         // バイナリで取得したHTMLをUTF-8に変換
-        let mut html = String::new();
-        match client.get(&url).send().await {
-            Ok(res) => {
-                html = encoder::sjis_to_utf8(&res.bytes().await.unwrap());
-            }
-            Err(e) => {
-                println!("{}", e);
-            }
-        };
-        Page {
+        let res = client.send().await.context("failed to get html")?;
+        let bytes = res.bytes().await.context("failed to get bytes")?;
+        let html = encoder::sjis_to_utf8(&bytes);
+        Ok(Page {
             url: url.to_string(),
             html,
-        }
+        })
     }
 
     pub fn get_url(&self) -> String {
