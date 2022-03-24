@@ -3,10 +3,10 @@ pub mod utils {
     pub mod headers;
     pub mod parser;
 }
-pub mod models {
+pub mod controller {
     pub mod board;
     pub mod reply;
     pub mod thread;
 }
 
-pub mod page;
+pub mod reqch;

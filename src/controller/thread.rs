@@ -3,8 +3,8 @@ use std::cell::{Cell, RefCell};
 use anyhow::Context;
 
 use crate::{
-    models::reply::{Replies, Reply},
-    page::Page,
+    controller::reply::{Replies, Reply},
+    reqch::Reqch,
     utils::parser,
 };
 
@@ -113,7 +113,7 @@ impl Thread {
             return anyhow::Result::Ok(self);
         };
 
-        let html = Page::new(&url).await.context("page error")?;
+        let html = Reqch::new(&url).await.context("page error")?;
         let html = html.get_html();
         let mut replies = self.parse(html.as_str());
         let replies_count = replies.len();

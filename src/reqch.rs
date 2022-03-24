@@ -4,13 +4,13 @@ use anyhow::Context;
 
 use crate::utils::{encoder, headers};
 
-pub struct Page {
+pub struct Reqch {
     url: String,
     html: String,
 }
 
-impl Page {
-    pub async fn new(url: &str) -> anyhow::Result<Page> {
+impl Reqch {
+    pub async fn new(url: &str) -> anyhow::Result<Reqch> {
         // URLからホスト名を取得
         let url = url.to_owned();
         let host = url::Url::parse(&url)
@@ -33,7 +33,7 @@ impl Page {
         let res = client.send().await.context("failed to get html")?;
         let bytes = res.bytes().await.context("failed to get bytes")?;
         let html = encoder::sjis_to_utf8(&bytes);
-        anyhow::Ok(Page {
+        anyhow::Ok(Self {
             url: url.to_string(),
             html,
         })

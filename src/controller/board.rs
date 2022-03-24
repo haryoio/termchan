@@ -3,8 +3,8 @@ use std::cell::RefCell;
 use reqwest::Url;
 
 use crate::{
-    models::thread::{Thread, Threads},
-    page::Page,
+    controller::thread::{Thread, Threads},
+    reqch::Reqch,
     utils::parser,
 };
 
@@ -19,7 +19,7 @@ impl Board {
         //  https://<server_name>/<board_key>/subback.html
         let url = url::Url::parse(&url).expect("url parse error");
         // スレッド一覧を取得
-        let html = Page::new(&url.as_str()).await?.get_html();
+        let html = Reqch::new(&url.as_str()).await?.get_html();
 
         anyhow::Ok(Board { url, html })
     }
@@ -63,7 +63,7 @@ impl Board {
     }
 
     pub async fn laod(&self) -> anyhow::Result<Self> {
-        let html = Page::new(&self.url.as_str()).await?.get_html();
+        let html = Reqch::new(&self.url.as_str()).await?.get_html();
         anyhow::Ok(Board {
             url: self.url.clone(),
             html: html.to_string(),
