@@ -1,20 +1,22 @@
-pub fn sjis_to_utf8(bytes: &[u8]) -> String {
-    let (res, _, _) = encoding_rs::SHIFT_JIS.decode(bytes);
-    res.to_owned().to_string()
-}
-pub fn is_gzip(buf: &[u8]) -> bool {
-    buf.len() >= 2 && buf[0] == 0x1f && buf[1] == 0x8b
+use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
+
+pub fn sjis_to_utf8(bytes: &[u8]) -> anyhow::Result<String> {
+    let (res, ..) = encoding_rs::SHIFT_JIS.decode(bytes);
+    Ok(res.to_string())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
+pub fn sjis_to_form_value(s: &str) -> anyhow::Result<String> {
+    let (res, encode, error) = encoding_rs::SHIFT_JIS.encode(&s);
+    if error {
+        return Err(anyhow::anyhow!(format!(
+            "failed to encode: \ntype: {}\ntarget: {}\n",
+            encode.name(),
+            s,
+        )));
+    };
 
-    #[test]
-    fn test_sjis_to_utf8() {
-        let s = fs::read("src/shiftjis.txt").unwrap();
-        let utf8 = sjis_to_utf8(&s);
-        assert_eq!(utf8, "あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん\n");
-    }
+    let encoded = percent_encode(&res.to_vec(), NON_ALPHANUMERIC).to_string();
+    Ok(encoded)
 }
+
+pub fn is_gzip(buf: &[u8]) -> bool { buf.len() >= 2 && buf[0] == 0x1f && buf[1] == 0x8b }

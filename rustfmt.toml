@@ -1,0 +1,15 @@
+condense_wildcard_suffixes = true
+edition = "2021"
+empty_item_single_line = false
+# 列挙型で20文字以内の要素を縦に揃える
+enum_discrim_align_threshold = 20
+fn_single_line = true
+force_multiline_blocks = true
+inline_attribute_width = 50
+imports_granularity = "Crate"
+newline_style = "Unix"
+group_imports = "StdExternalCrate"
+# structの20文字以内のフィールドを縦に揃える
+struct_field_align_threshold = 20
+# フィールド初期化のとき、可能であれば省略形を使用する
+use_field_init_shorthand = true

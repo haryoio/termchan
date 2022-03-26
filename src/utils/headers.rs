@@ -1,4 +1,10 @@
-use reqwest::header::HeaderMap;
+use std::{borrow::Cow, collections::HashMap, vec};
+
+use anyhow::Context;
+use reqwest::header::{
+    HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, CACHE_CONTROL,
+    CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
+};
 
 pub fn gen_cookie(session_id: Option<&str>) -> String {
     let mut cookie = String::new();
@@ -11,82 +17,66 @@ pub fn gen_cookie(session_id: Option<&str>) -> String {
     cookie
 }
 
-pub fn getable_headers(host: &str, cookie: &str) -> HeaderMap {
-    let host = host.to_owned();
-    let cookie = cookie.to_owned();
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        reqwest::header::COOKIE,
-        reqwest::header::HeaderValue::from_str(&cookie.clone()).unwrap(),
-    );
-    headers.insert(
-        reqwest::header::ACCEPT,
-        reqwest::header::HeaderValue::from_str(
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        )
-        .unwrap(),
-    );
-    headers.insert(
-        reqwest::header::USER_AGENT,
-        reqwest::header::HeaderValue::from_str("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::ACCEPT_ENCODING,
-        reqwest::header::HeaderValue::from_str("gzip, deflate, br").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::ACCEPT_LANGUAGE,
-        reqwest::header::HeaderValue::from_str("ja,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6")
-            .unwrap(),
-    );
-    headers.insert(
-        reqwest::header::CONNECTION,
-        reqwest::header::HeaderValue::from_str("keep-alive").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::HOST,
-        reqwest::header::HeaderValue::from_str(&host.clone()).unwrap(),
-    );
-    headers
+pub fn vec_to_cookie(map: Vec<(&str, &str)>) -> String {
+    let mut s = String::new();
+    for (key, value) in map {
+        s.push_str(key);
+        s.push_str("=");
+        s.push_str(value);
+        s.push_str("; ");
+    }
+    s = s.trim().to_string();
+    s.pop();
+    s
 }
 
-fn postable_header() {
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert(
-        reqwest::header::ACCEPT,
-        reqwest::header::HeaderValue::from_str(
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        )
-        .unwrap(),
-    );
-    headers.insert(
-        reqwest::header::USER_AGENT,
-        reqwest::header::HeaderValue::from_str("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::ACCEPT_ENCODING,
-        reqwest::header::HeaderValue::from_str("gzip, deflate, br").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::ACCEPT_LANGUAGE,
-        reqwest::header::HeaderValue::from_str("ja,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6")
-            .unwrap(),
-    );
-    headers.insert(
-        reqwest::header::CONNECTION,
-        reqwest::header::HeaderValue::from_str("keep-alive").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::HOST,
-        reqwest::header::HeaderValue::from_str("www.nicovideo.jp").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::REFERER,
-        reqwest::header::HeaderValue::from_str("https://www.nicovideo.jp/").unwrap(),
-    );
-    headers.insert(
-        reqwest::header::COOKIE,
-        reqwest::header::HeaderValue::from_str("user_session=; user_session_time=; user_session")
-            .unwrap(),
-    );
+pub fn base_headers() -> Vec<(HeaderName, String)> {
+    let map = vec![(
+        ACCEPT,
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
+    ),
+    (ACCEPT_ENCODING, "gzip, deflate, br"),
+    (ACCEPT_LANGUAGE, "ja,en-US;q=0.9,en;q=0.8"),
+    (CACHE_CONTROL, "max-age=0"),
+    (CONTENT_TYPE, "application/x-www-form-urlencoded"),
+    (UPGRADE_INSECURE_REQUESTS, "1"),
+    (USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0")];
+    let map = map.into_iter().map(|(k, v)| (k, v.to_string())).collect();
+    map
+}
+pub fn vec_to_headers(vec: Vec<(HeaderName, String)>) -> anyhow::Result<HeaderMap> {
+    let mut header_map = HeaderMap::new();
+    for (key, value) in vec {
+        header_map.insert(
+            key,
+            HeaderValue::from_str(&value).context("header value parse error")?,
+        );
+    }
+    Ok(header_map)
+}
+
+pub fn vec_to_formvalue(vec: Vec<(&str, &str)>) -> anyhow::Result<String> {
+    let mut s = String::new();
+    for (key, value) in vec {
+        s.push_str(key);
+        s.push_str("=");
+        s.push_str(value);
+        s.push_str("&");
+    }
+    s = s.trim().to_string();
+    s.pop();
+    Ok(s)
+}
+
+pub fn getable_headers(host: &str, cookie: &str) -> anyhow::Result<HeaderMap> {
+    let mut map = base_headers();
+    let get_header = vec![(HOST, host), (COOKIE, cookie)];
+    let mut get_header = get_header
+        .into_iter()
+        .map(|(k, v)| (k, v.to_string()))
+        .collect();
+    map.append(&mut get_header);
+    let headers = vec_to_headers(map)?;
+
+    Ok(headers)
 }
