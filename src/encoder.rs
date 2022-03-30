@@ -1,7 +1,6 @@
 use std::vec;
 
 use anyhow::Context;
-use percent_encoding::{percent_encode, NON_ALPHANUMERIC};
 use reqwest::header::{
     HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, CACHE_CONTROL,
     CONTENT_TYPE, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
