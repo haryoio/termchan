@@ -3,6 +3,16 @@ use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
 use crate::utils::headers;
 
+// TODO: ビルダーパターンで書き直す
+// TODO: ログイン, 名前, メールをビルドパラメータで渡す
+// let client = termch::sender::SenderBuilder::new()
+//      .message("test")
+//      .name(None)
+//      .ronin(vec![(mail, secret)])
+//      .build();
+// !書き込み時のエラー（他所でやってください）などはここで捕まえる
+// let res = client.send().await?;
+
 pub struct Sender {
     url: String,
 }

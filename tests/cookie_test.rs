@@ -1,8 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
-    use SCHCLIENT::utils::headers;
+    use termch::utils::headers;
 
     #[test]
     fn test_cookie_single() {

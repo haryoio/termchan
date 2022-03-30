@@ -1,5 +1,5 @@
 [package]
-name = "SCHCLIENT"
+name = "termch"
 version = "0.1.0"
 edition = "2021"
 

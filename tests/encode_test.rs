@@ -3,7 +3,7 @@ mod test {
     use std::fs;
 
     use anyhow::{Context, Ok};
-    use SCHCLIENT::utils::encoder::{sjis_to_form_value, sjis_to_utf8};
+    use termch::utils::encoder::{sjis_to_form_value, sjis_to_utf8};
 
     #[test]
     fn test_sjis_to_utf8() -> anyhow::Result<()> {

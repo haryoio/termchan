@@ -3,26 +3,6 @@
 version = 3
 
 [[package]]
-name = "SCHCLIENT"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "encoding_rs",
- "lazy_static",
- "percent-encoding",
- "regex",
- "reqwest",
- "scraper",
- "serde",
- "serde_derive",
- "serde_json",
- "serde_urlencoded",
- "tokio",
- "url",
-]
-
-[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1421,6 +1401,26 @@ dependencies = [
  "futf",
  "mac",
  "utf-8",
+]
+
+[[package]]
+name = "termch"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "encoding_rs",
+ "lazy_static",
+ "percent-encoding",
+ "regex",
+ "reqwest",
+ "scraper",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "serde_urlencoded",
+ "tokio",
+ "url",
 ]
 
 [[package]]

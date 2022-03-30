@@ -2,13 +2,13 @@ use anyhow::Context;
 
 use crate::utils::{encoder, headers};
 
-pub struct Reqch {
+pub struct Reciever {
     url:  String,
     html: String,
 }
 
-impl Reqch {
-    pub async fn new(url: &str) -> anyhow::Result<Reqch> {
+impl Reciever {
+    pub async fn new(url: &str) -> anyhow::Result<Reciever> {
         // URLからホスト名を取得
         let url = url.to_owned();
         let host = url::Url::parse(&url)
