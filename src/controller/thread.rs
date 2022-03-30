@@ -4,7 +4,8 @@ use anyhow::Context;
 
 use crate::{
     controller::reply::{Replies, Reply},
-    utils::{pattterns, requester::Reqch},
+    pattterns,
+    receiver::Reciever,
 };
 
 pub type Threads = Vec<Thread>;
@@ -102,8 +103,7 @@ impl Thread {
             return anyhow::Result::Ok(self);
         };
 
-        let html = Reqch::new(&url).await.context("page error")?;
-        let html = html.get_html();
+        let html = Reciever::get(&url).await.context("page error")?.html();
         let mut replies = self.parse(html.as_str());
         let replies_count = replies.len();
 
@@ -119,7 +119,7 @@ impl Thread {
         anyhow::Result::Ok(self)
     }
 
-    pub async fn get_replies(&self) -> anyhow::Result<Replies> {
+    pub async fn replies(&self) -> anyhow::Result<Replies> {
         self.reload().await?;
         let replies = &*self.replies.borrow();
         anyhow::Result::Ok(replies.to_vec())

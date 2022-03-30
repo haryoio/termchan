@@ -3,7 +3,8 @@ use reqwest::Url;
 
 use crate::{
     controller::thread::{Thread, Threads},
-    utils::{pattterns, requester::Reqch},
+    pattterns,
+    receiver::Reciever,
 };
 
 #[derive(Debug)]
@@ -16,10 +17,10 @@ impl Board {
     pub async fn new(url: &str) -> anyhow::Result<Board> {
         //  https://<server_name>/<board_key>/subback.html
         let url = url::Url::parse(&url).expect("url parse error");
-        // スレッド一覧を取得
-        let html = Reqch::new(&url.as_str()).await?.get_html();
-
-        anyhow::Ok(Board { url, html })
+        anyhow::Ok(Board {
+            url,
+            html: String::new(),
+        })
     }
 
     pub fn get_url(&self) -> &Url { &self.url }
@@ -50,8 +51,8 @@ impl Board {
         anyhow::Ok(threads)
     }
 
-    pub async fn laod(&self) -> anyhow::Result<Self> {
-        let html = Reqch::new(&self.url.as_str()).await?.get_html();
+    pub async fn get(&self) -> anyhow::Result<Self> {
+        let html = Reciever::get(&self.url.as_str()).await?.html();
         anyhow::Ok(Board {
             url:  self.url.clone(),
             html: html.to_string(),

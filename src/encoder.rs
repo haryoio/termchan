@@ -1,23 +1,17 @@
-use std::{borrow::Cow, collections::HashMap, vec};
+use std::vec;
 
 use anyhow::Context;
 use reqwest::header::{
     HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, CACHE_CONTROL,
-    CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
+    CONTENT_TYPE, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
 };
 
-pub fn gen_cookie(session_id: Option<&str>) -> String {
-    let mut cookie = String::new();
-    if let Some(sid) = session_id {
-        cookie.push_str("sid=");
-        cookie.push_str(sid);
-        cookie.push_str("; ");
-    }
-    cookie.push_str("READJS=off; SUBBACK_STYLE=1");
-    cookie
+pub fn sjis_to_utf8(bytes: &[u8]) -> anyhow::Result<String> {
+    let (res, ..) = encoding_rs::SHIFT_JIS.decode(bytes);
+    Ok(res.to_string())
 }
 
-pub fn vec_to_cookie(map: Vec<(&str, &str)>) -> String {
+pub fn cookie_from_vec(map: Vec<(&str, &str)>) -> String {
     let mut s = String::new();
     for (key, value) in map {
         s.push_str(key);
@@ -44,7 +38,8 @@ pub fn base_headers() -> Vec<(HeaderName, String)> {
     let map = map.into_iter().map(|(k, v)| (k, v.to_string())).collect();
     map
 }
-pub fn vec_to_headers(vec: Vec<(HeaderName, String)>) -> anyhow::Result<HeaderMap> {
+
+pub fn headers_from_vec(vec: Vec<(HeaderName, String)>) -> anyhow::Result<HeaderMap> {
     let mut header_map = HeaderMap::new();
     for (key, value) in vec {
         header_map.insert(
@@ -55,7 +50,7 @@ pub fn vec_to_headers(vec: Vec<(HeaderName, String)>) -> anyhow::Result<HeaderMa
     Ok(header_map)
 }
 
-pub fn vec_to_formvalue(vec: Vec<(&str, &str)>) -> anyhow::Result<String> {
+pub fn formvalue_from_vec(vec: Vec<(&str, &str)>) -> anyhow::Result<String> {
     let mut s = String::new();
     for (key, value) in vec {
         s.push_str(key);
@@ -68,15 +63,4 @@ pub fn vec_to_formvalue(vec: Vec<(&str, &str)>) -> anyhow::Result<String> {
     Ok(s)
 }
 
-pub fn getable_headers(host: &str, cookie: &str) -> anyhow::Result<HeaderMap> {
-    let mut map = base_headers();
-    let get_header = vec![(HOST, host), (COOKIE, cookie)];
-    let mut get_header = get_header
-        .into_iter()
-        .map(|(k, v)| (k, v.to_string()))
-        .collect();
-    map.append(&mut get_header);
-    let headers = vec_to_headers(map)?;
-
-    Ok(headers)
-}
+pub fn is_gzip(buf: &[u8]) -> bool { buf.len() >= 2 && buf[0] == 0x1f && buf[1] == 0x8b }

@@ -1,14 +1,15 @@
 use anyhow::Context;
+use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
-use crate::utils::{encoder, headers};
+use crate::encoder;
 
-pub struct Reqch {
+pub struct Reciever {
     url:  String,
     html: String,
 }
 
-impl Reqch {
-    pub async fn new(url: &str) -> anyhow::Result<Reqch> {
+impl Reciever {
+    pub async fn get(url: &str) -> anyhow::Result<Reciever> {
         // URLからホスト名を取得
         let url = url.to_owned();
         let host = url::Url::parse(&url)
@@ -17,10 +18,13 @@ impl Reqch {
             .context("host parse error")?
             .to_string();
 
-        let cookie = headers::gen_cookie(None);
+        let cookie = vec![("READJS", "off"), ("SUBBACK_STYLE", "1")];
+        let cookie = encoder::cookie_from_vec(cookie);
 
-        // 5chへリクエストするためのヘッダを生成
-        let headers = headers::getable_headers(&host.clone(), &cookie.clone())?;
+        let mut headers: Vec<(HeaderName, String)> = encoder::base_headers();
+        headers.append(&mut vec![(HOST, host.to_string()), (COOKIE, cookie)]);
+        let headers = encoder::headers_from_vec(headers)?;
+
         let client = reqwest::Client::builder()
             .default_headers(headers)
             .build()
@@ -37,7 +41,7 @@ impl Reqch {
         })
     }
 
-    pub fn get_url(&self) -> String { self.url.clone() }
+    pub fn url(&self) -> String { self.url.clone() }
 
-    pub fn get_html(&self) -> String { self.html.clone() }
+    pub fn html(&self) -> String { self.html.clone() }
 }
