@@ -1,7 +1,7 @@
 use anyhow::Context;
 use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
-use crate::utils::headers;
+use crate::encoder;
 
 // TODO: ビルダーパターンで書き直す
 // TODO: ログイン, 名前, メールをビルドパラメータで渡す
@@ -29,20 +29,16 @@ impl Sender {
         let host = self.get_host();
         let thread_id = self.get_thread_id();
         let board = self.get_board_key();
-        // referer: https://<host>/test/read.cgi/<board_key>/<thread_id>/
-        let referer = format!("{}", url);
-        // origin: https://<host>
-        let origin = format!("https://{}", &self.get_host());
-        // post_url: https://<host>/test/bbs.cgi
-        let post_url = format!("{}/test/bbs.cgi", &origin);
-        // time: unixtime
-        let time = self.get_time().to_string();
+        let referer = format!("{}", url); // referer: https://<host>/test/read.cgi/<board_key>/<thread_id>/
+        let origin = format!("https://{}", &self.get_host()); // origin: https://<host>
+        let post_url = format!("{}/test/bbs.cgi", &origin); // post_url: https://<host>/test/bbs.cgi
+        let time = self.get_time().to_string(); // time: unixtime
 
         let cookie = vec![("yuki", "akari")];
-        let cookie = headers::vec_to_cookie(cookie);
+        let cookie = encoder::cookie_from_vec(cookie);
 
         let content_type = "application/x-www-form-urlencoded".to_string();
-        let mut headers: Vec<(HeaderName, String)> = headers::base_headers();
+        let mut headers: Vec<(HeaderName, String)> = encoder::base_headers();
         headers.append(&mut vec![
             (HOST, host.to_string()),
             (ORIGIN, origin),
@@ -50,7 +46,7 @@ impl Sender {
             (CONTENT_TYPE, content_type),
             (COOKIE, cookie),
         ]);
-        let headers = headers::vec_to_headers(headers)?;
+        let headers = encoder::headers_from_vec(headers)?;
 
         // form-data形式のデータを作成
         let form = vec![
@@ -63,7 +59,7 @@ impl Sender {
             ("submit", "書き込む"),
             ("oekaki_thread1", ""),
         ];
-        let form_data = headers::vec_to_formvalue(form)?;
+        let form_data = encoder::formvalue_from_vec(form)?;
 
         let client = reqwest::Client::builder()
             .default_headers(headers.clone())
