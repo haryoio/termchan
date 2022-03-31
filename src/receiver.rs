@@ -1,5 +1,5 @@
 use anyhow::Context;
-use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
+use reqwest::header::{HeaderName, COOKIE, HOST};
 
 use crate::encoder;
 

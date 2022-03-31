@@ -14,7 +14,7 @@ pub struct Board {
 }
 
 impl Board {
-    pub async fn new(url: &str) -> anyhow::Result<Board> {
+    pub fn new(url: &str) -> anyhow::Result<Board> {
         //  https://<server_name>/<board_key>/subback.html
         let url = url::Url::parse(&url).expect("url parse error");
         anyhow::Ok(Board {
@@ -22,13 +22,6 @@ impl Board {
             html: String::new(),
         })
     }
-
-    pub fn get_url(&self) -> &Url { &self.url }
-
-    pub fn get_server_name(&self) -> String { self.url.host_str().unwrap().to_string() }
-
-    pub fn get_board_key(&self) -> String { self.url.path().split("/").nth(1).unwrap().to_string() }
-
     pub async fn parse(&self) -> anyhow::Result<Threads> {
         let board_key = self.get_board_key();
         let server_name = self.get_server_name();
@@ -58,4 +51,9 @@ impl Board {
             html: html.to_string(),
         })
     }
+    pub fn get_url(&self) -> &Url { &self.url }
+
+    pub fn get_server_name(&self) -> String { self.url.host_str().unwrap().to_string() }
+
+    pub fn get_board_key(&self) -> String { self.url.path().split("/").nth(1).unwrap().to_string() }
 }
