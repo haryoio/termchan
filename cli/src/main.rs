@@ -1,13 +1,15 @@
+extern crate cli;
 use core::controller::thread::Thread;
-use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
 use std::{
     error::Error,
     io,
     time::{Duration, Instant},
+};
+
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -59,18 +61,17 @@ impl<T> StatefulList<T> {
         self.state.select(Some(i))
     }
 
-    fn unselect(&mut self) {
-        self.state.select(None)
-    }
+    fn unselect(&mut self) { self.state.select(None) }
 }
 
 struct App<'a> {
-    items: StatefulList<(&'a str, usize)>,
+    items:  StatefulList<(&'a str, usize)>,
     events: Vec<(&'a str, &'a str)>,
 }
 
 impl<'a> App<'a> {
-    fn new() -> App<'a> {}
+    fn new() -> App<'a> {
+    }
 }
 
 fn main() {

@@ -1,12 +1,13 @@
 use anyhow::Context;
 use regex::Regex;
-use std::borrow::Cow;
-use std::collections::HashMap;
 
-type Categories = HashMap<String, HashMap<String, String>>;
-fn split_categories(html: &mut String) -> anyhow::Result<Categories> {
-    let targetr = Regex::new(r#" TARGET=(.*?)>"#).unwrap();
-    let html = targetr.replace_all(html, |caps: &regex::Captures| ">".to_string());
+use crate::encoder::{is_utf8, sjis_to_utf8};
+
+fn split_categories(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
+    let targetr = Regex::new(r#" TARGET=(.*?)>"#).context("failed to create regex")?;
+    let html = targetr.replace_all(&html, ">".to_string());
+
+    // println!("{}", html);
     let mut splitted: Vec<&str> = html.split("\n").collect::<Vec<&str>>();
     splitted.reverse();
 
@@ -22,20 +23,33 @@ fn split_categories(html: &mut String) -> anyhow::Result<Categories> {
             lines.push(&l[11..l.len() - 8]);
         }
     }
-    let mut categories: HashMap<String, HashMap<String, String>> = HashMap::new();
-    let mut links: HashMap<String, String> = HashMap::new();
+
+    let mut categories: Vec<BbsCategories> = Vec::new();
+    let mut links: Vec<BbsUrl> = Vec::new();
     for l in lines {
         let s = l.split("/>").collect::<Vec<&str>>();
         match s.len() {
             1 => {
                 let category = s[0].to_string();
-                categories.insert(category, links);
-                links = HashMap::new();
+                if category.contains("<") {
+                    let s = category.split("<").collect::<Vec<&str>>();
+                    let mut title = s[0].to_string();
+                    let url = s[1].to_string();
+                    links.push(BbsUrl { title, url });
+                    continue;
+                }
+                categories.push(BbsCategories {
+                    category,
+                    list: links,
+                });
+                links = Vec::new();
             }
             2 => {
-                let url = s[0].to_string();
-                let link = s[1].to_string();
-                links.insert(link, url);
+                let mut title = s[0].to_string();
+                let (en, ..) = encoding_rs::SHIFT_JIS.decode(title.as_bytes());
+                let title = en.to_string();
+                let url = s[1].to_string();
+                links.push(BbsUrl { title, url });
             }
             _ => {
                 return Err(anyhow::anyhow!("failed to parse categories"));
@@ -43,12 +57,13 @@ fn split_categories(html: &mut String) -> anyhow::Result<Categories> {
         }
     }
 
-    for (x, y) in categories.iter_mut() {
-        println!("{}", x);
-        for (z, w) in y.iter_mut() {
-            println!("\t{}: {}", z, w);
+    for c in &categories {
+        println!("{}", c.category);
+        for l in &c.list {
+            println!("\t{} : {}", l.title, l.url);
         }
     }
+
     Ok(categories)
 }
 
@@ -64,8 +79,7 @@ impl Bbsmenu {
 
     pub async fn load(&self) -> anyhow::Result<Vec<BbsUrl>> {
         let url = self.url.clone();
-        let client = reqwest::Client::new();
-        let resp = client.get(url).send().await?;
+        let html = Reciever::get(&url).await.context("page error")?.html();
         let mut text = resp.text().await?;
         let split = split_categories(&mut text);
         Ok(Vec::new())
@@ -81,7 +95,6 @@ pub struct BbsCategories {
 pub struct BbsUrl {
     url: String,
     title: String,
-    description: String,
 }
 
 #[cfg(test)]
@@ -90,7 +103,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_bbsmenu() {
-        let url = "https://menu.2ch.sc/bbsmenu.html";
+        let url = "https://menu.5ch.net/bbsmenu.html";
         let bbsmenu = Bbsmenu::new(url.to_string());
         let result = bbsmenu.load().await;
         println!("{:?}", result);

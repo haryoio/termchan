@@ -8,7 +8,7 @@ use crate::encoder;
 // let client = termch::sender::SenderBuilder::new()
 //      .message("test")
 //      .name(None)
-//      .ronin(vec![(mail, secret)])
+//      .login(vec![(mail, secret)])
 //      .build();
 // !書き込み時のエラー（他所でやってください）などはここで捕まえる
 // let res = client.send().await?;

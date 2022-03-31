@@ -101,9 +101,7 @@ impl Login {
         }
     }
 
-    pub fn url(&self) -> String {
-        self.url.clone()
-    }
+    pub fn url(&self) -> String { self.url.clone() }
 }
 #[cfg(test)]
 mod tests {

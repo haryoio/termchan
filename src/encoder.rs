@@ -64,3 +64,22 @@ pub fn formvalue_from_vec(vec: Vec<(&str, &str)>) -> anyhow::Result<String> {
 }
 
 pub fn is_gzip(buf: &[u8]) -> bool { buf.len() >= 2 && buf[0] == 0x1f && buf[1] == 0x8b }
+
+pub fn is_utf8(buf: &[u8]) -> bool { std::str::from_utf8(buf).is_ok() }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_is_utf8() {
+        let c = "あいうえお";
+        let (buf, ..) = encoding_rs::UTF_8.encode(c);
+        assert!(is_utf8(&buf));
+    }
+    #[test]
+    fn test_is_not_utf8() {
+        let c = "あいうえお";
+        let (buf, ..) = encoding_rs::SHIFT_JIS.encode(c);
+        assert!(!is_utf8(&buf));
+    }
+}
