@@ -1143,6 +1143,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "reqwest_cookie_store"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48cbf3a2aeeeaa6d10a76db86068c3560320f6265c3a0e2642e0538e11c2d143"
+dependencies = [
+ "bytes",
+ "cookie",
+ "cookie_store",
+ "reqwest",
+ "url",
+]
+
+[[package]]
 name = "rustc_version"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1501,12 +1514,14 @@ dependencies = [
  "async-trait",
  "configparser",
  "confy",
+ "cookie_store",
  "dirs",
  "encoding_rs",
  "lazy_static",
  "percent-encoding",
  "regex",
  "reqwest",
+ "reqwest_cookie_store",
  "scraper",
  "serde",
  "serde_derive",
