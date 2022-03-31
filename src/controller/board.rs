@@ -56,6 +56,4 @@ impl Board {
     pub fn get_server_name(&self) -> String { self.url.host_str().unwrap().to_string() }
 
     pub fn get_board_key(&self) -> String { self.url.path().split("/").nth(1).unwrap().to_string() }
-
-
 }
