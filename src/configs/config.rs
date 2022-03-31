@@ -8,7 +8,7 @@ const APP_NAME: &str = "termch";
 const CONFIG_FILE: &str = "config";
 
 #[derive(Debug)]
-pub struct Config {
+pub struct AppConfig {
     pub login:    Option<bool>,
     pub url:      String,
     pub email:    String,
@@ -18,7 +18,7 @@ pub struct Config {
 
 //
 // let config = Config::new("config")?
-impl Config {
+impl AppConfig {
     pub fn new(name: Option<&str>) -> Self {
         let config_name = match name {
             Some(name) => name.to_string(),
@@ -33,7 +33,7 @@ impl Config {
         }
     }
 
-    pub fn load(&self) -> anyhow::Result<Config> {
+    pub fn load(&self) -> anyhow::Result<AppConfig> {
         let mut cfg = Ini::new();
         let path = self
             .config_file_path()
@@ -48,7 +48,7 @@ impl Config {
         let url = cfg.get("login", "url").unwrap_or(String::new());
         let email = cfg.get("login", "user").unwrap_or(String::new());
         let password = cfg.get("login", "password").unwrap_or(String::new());
-        Ok(Config {
+        Ok(AppConfig {
             login,
             url,
             email,
@@ -107,26 +107,26 @@ mod tests {
     }
 
     async fn clean() {
-        let conf = Config::new(CONFIG_FILE);
+        let conf = AppConfig::new(CONFIG_FILE);
         let path = conf.config_file_path().unwrap();
         let _ = fs::remove_file(path).unwrap_or(());
     }
 
     async fn config_file_exists() {
-        let conf = Config::new(CONFIG_FILE);
+        let conf = AppConfig::new(CONFIG_FILE);
         let is_exists = conf.is_exist();
         assert_eq!(is_exists, false);
     }
 
     async fn initialize_config_file() {
-        let conf = Config::new(CONFIG_FILE);
+        let conf = AppConfig::new(CONFIG_FILE);
         conf.initialize_config_file().unwrap();
         let is_exist = conf.is_exist();
         assert_eq!(is_exist, true);
     }
 
     async fn load_default_config_file() {
-        let conf = Config::new(CONFIG_FILE);
+        let conf = AppConfig::new(CONFIG_FILE);
         let config = conf.load().unwrap();
         assert_eq!(config.login, Some(false));
         assert_eq!(config.url, "".to_string());
@@ -135,7 +135,7 @@ mod tests {
     }
 
     async fn test_config_file_path() {
-        let conf = Config::new(CONFIG_FILE);
+        let conf = AppConfig::new(CONFIG_FILE);
         let path = conf.config_file_path().unwrap();
 
         let home = dirs::home_dir().unwrap();

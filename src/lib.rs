@@ -1,5 +1,6 @@
-pub mod config {
+pub mod configs {
     pub mod config;
+    pub mod cookie;
 }
 pub mod encoder;
 pub mod login;
