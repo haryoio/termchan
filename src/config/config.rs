@@ -11,7 +11,7 @@ const CONFIG_FILE: &str = "config";
 pub struct Config {
     pub login:    Option<bool>,
     pub url:      String,
-    pub user:     String,
+    pub email:    String,
     pub password: String,
     config_name:  String,
 }
@@ -27,7 +27,7 @@ impl Config {
         Self {
             login: None,
             url: "".to_string(),
-            user: "".to_string(),
+            email: "".to_string(),
             password: "".to_string(),
             config_name,
         }
@@ -46,12 +46,12 @@ impl Config {
         cfg.read(cfg_str).unwrap();
         let login = cfg.getbool("login", "login").unwrap_or(Some(false));
         let url = cfg.get("login", "url").unwrap_or(String::new());
-        let user = cfg.get("login", "user").unwrap_or(String::new());
+        let email = cfg.get("login", "user").unwrap_or(String::new());
         let password = cfg.get("login", "password").unwrap_or(String::new());
         Ok(Config {
             login,
             url,
-            user,
+            email,
             password,
             config_name: self.config_name.clone(),
         })
@@ -124,7 +124,7 @@ mod tests {
         let config = conf.load().unwrap();
         assert_eq!(config.login, Some(false));
         assert_eq!(config.url, "".to_string());
-        assert_eq!(config.user, "".to_string());
+        assert_eq!(config.email, "".to_string());
         assert_eq!(config.password, "".to_string());
     }
 
