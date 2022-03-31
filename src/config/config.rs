@@ -81,6 +81,12 @@ impl Config {
         let path = self.config_file_path().unwrap();
         Path::new(&path).exists()
     }
+
+    pub fn conf_dir(&self) -> anyhow::Result<String> {
+        let path = dirs::config_dir().unwrap();
+        let path = path.join(APP_NAME);
+        Ok(path.to_str().unwrap().to_string())
+    }
 }
 
 #[cfg(test)]

@@ -1,6 +1,4 @@
 extern crate termch;
-use confy;
-use termch::{controller::board::Board, login::Login, sender};
 use tokio;
 
 // 板一覧より板をそれぞれのURLに分割して取得する

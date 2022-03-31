@@ -1,6 +1,6 @@
 #![feature(let_chains)]
 extern crate termch;
-use termch::{controller::board::Board, login::Login, sender};
+use termch::{controller::board::Board};
 use tokio;
 
 // 板一覧より板をそれぞれのURLに分割して取得する
