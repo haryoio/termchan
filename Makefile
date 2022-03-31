@@ -1,7 +1,16 @@
 .PHONY: run
 run:
-	@echo "SCHClient try to run"
 	cargo run --bin main
+
+.PHONY: clia
+clia:
+	cargo run -p cli
+
+.PHONY: fmt
+fmt:
+	@echo "Formatting..."
+	cargo fmt --all
+	@echo "Done."
 
 .PHONY: test
 test:
