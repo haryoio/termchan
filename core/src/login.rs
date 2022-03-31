@@ -1,4 +1,4 @@
-use std::{fs::File, io, sync::Arc};
+use std::sync::Arc;
 
 use anyhow::Context;
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
@@ -101,7 +101,9 @@ impl Login {
         }
     }
 
-    pub fn url(&self) -> String { self.url.clone() }
+    pub fn url(&self) -> String {
+        self.url.clone()
+    }
 }
 #[cfg(test)]
 mod tests {

@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.cargo.noSysroot": true,
+    "rust-analyzer.diagnostics.disabled": [
+        "inactive-code"
+    ],
+    "rust-analyzer.cargo.allFeatures": true,
+}

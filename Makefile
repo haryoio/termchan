@@ -1,10 +1,14 @@
-.PHONY: run
-run:
-	cargo run --bin main
+project_name = "termchan"
 
-.PHONY: clia
-clia:
-	cargo run -p cli
+.PHONY: core
+core:
+	@echo "$(project_name) try to run core"
+	cargo run -p $@
+
+.PHONY: cli
+cli:
+	@echo "$(project_name) try to run cli"
+	cargo run -p $@
 
 .PHONY: fmt
 fmt:
@@ -14,5 +18,5 @@ fmt:
 
 .PHONY: test
 test:
-	@echo "SCHClient try to test"
+	@echo "$(project_name) try to test"
 	cargo test -- --nocapture
