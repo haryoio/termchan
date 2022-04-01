@@ -3,9 +3,6 @@ name = "termchan"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-members = ["cli"]
-
 [dependencies]
 anyhow = "1.0.56"
 async-trait = "0.1.52"
