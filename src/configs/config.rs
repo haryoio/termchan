@@ -3,19 +3,16 @@ use std::{fs, io::prelude::*, path::Path};
 use anyhow::{Context, Ok};
 use configparser::ini::Ini;
 use dirs;
+use serde::{Deserialize, Serialize};
 
 const APP_NAME: &str = "termch";
 const CONFIG_FILE: &str = "config";
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AppConfig {
-    pub login:    Option<bool>,
-    pub url:      String,
-    pub email:    String,
-    pub password: String,
-    config_name:  String,
+    pub login: LoginConfig,
+    config_name: String,
 }
-
 //
 // let config = Config::new("config")?
 impl AppConfig {
@@ -25,16 +22,17 @@ impl AppConfig {
             None => CONFIG_FILE.to_string(),
         };
         Self {
-            login: None,
-            url: "".to_string(),
-            email: "".to_string(),
-            password: "".to_string(),
+            login: LoginConfig {
+                enabled: None,
+                url: String::new(),
+                email: String::new(),
+                password: String::new(),
+            },
             config_name,
         }
     }
 
     pub fn load(&self) -> anyhow::Result<AppConfig> {
-        let mut cfg = Ini::new();
         let path = self
             .config_file_path()
             .context("failed to get config file path")?;
@@ -42,6 +40,7 @@ impl AppConfig {
         if !self.is_exist() {
             self.initialize_config_file()?;
         }
+        let mut cfg = Ini::new();
         let cfg_str = fs::read_to_string(path)?;
         cfg.read(cfg_str).unwrap();
         let login = cfg.getbool("login", "login").unwrap_or(Some(false));
@@ -49,10 +48,12 @@ impl AppConfig {
         let email = cfg.get("login", "user").unwrap_or(String::new());
         let password = cfg.get("login", "password").unwrap_or(String::new());
         Ok(AppConfig {
-            login,
-            url,
-            email,
-            password,
+            login: LoginConfig {
+                enabled: login,
+                url,
+                email,
+                password,
+            },
             config_name: self.config_name.clone(),
         })
     }
@@ -87,6 +88,19 @@ impl AppConfig {
         let path = path.join(APP_NAME);
         Ok(path.to_str().unwrap().to_string())
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoginConfig {
+    pub enabled: Option<bool>,
+    pub url: String,
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BbsConfig {
+    pub bbsmenu_list: Vec<String>,
 }
 
 #[cfg(test)]
@@ -128,10 +142,7 @@ mod tests {
     async fn load_default_config_file() {
         let conf = AppConfig::new(CONFIG_FILE);
         let config = conf.load().unwrap();
-        assert_eq!(config.login, Some(false));
-        assert_eq!(config.url, "".to_string());
-        assert_eq!(config.email, "".to_string());
-        assert_eq!(config.password, "".to_string());
+        assert_eq!(config.login.enabled, Some(false));
     }
 
     async fn test_config_file_path() {

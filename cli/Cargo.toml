@@ -7,3 +7,5 @@ edition = "2021"
 crossterm = "0.23.1"
 tui = "0.17.0"
 termchan = { path = ".." }
+anyhow = "1.0.56"
+tokio = "1.17.0"
