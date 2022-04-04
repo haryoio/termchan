@@ -98,11 +98,11 @@ fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
 }
 
 #[derive(Debug)]
-pub struct Bbsmenu {
+pub struct BbsMenu {
     pub url: String,
 }
 
-impl Bbsmenu {
+impl BbsMenu {
     pub fn new(url: String) -> Self {
         Self { url }
     }
@@ -133,7 +133,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_5ch_bbsmenu() {
         let url = "https://menu.5ch.net/bbsmenu.html";
-        let bbsmenu = Bbsmenu::new(url.to_string());
+        let bbsmenu = BbsMenu::new(url.to_string());
         let result = bbsmenu.load().await;
         println!("{:?}", result);
         assert!(result.is_ok());
