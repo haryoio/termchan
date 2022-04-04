@@ -2,11 +2,9 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
+use reqwest_cookie_store::CookieStoreMutex;
 
-use crate::{
-    configs::{config::AppConfig, cookie::CookieStore},
-    encoder,
-};
+use crate::{configs::config::Config, cookie::CookieStore, encoder};
 
 pub struct Login {
     url: String,
@@ -14,18 +12,16 @@ pub struct Login {
 
 impl Login {
     pub async fn do_login() -> anyhow::Result<()> {
-        let config = AppConfig::new(None);
-        let config = config.load().unwrap();
-        if config.login.is_none() {
-            return Err(anyhow::anyhow!("login is not set"));
-        }
-        let url = config.url.clone();
-        let email = config.email.clone();
-        let password = config.password.clone();
-        if url.is_empty() || email.is_empty() || password.is_empty() {
-            return Err(anyhow::anyhow!("login info is not set"));
-        }
+        let config = Config::load().unwrap();
+        let config = match config.login {
+            Some(config) => config,
+            None => return Ok(()),
+        };
 
+        let url = match config.url {
+            Some(url) => url,
+            None => return Ok(()),
+        };
         // ログイン用のホスト名を取得
         let host = url::Url::parse(&url)
             .context("url parse error")?
@@ -33,12 +29,11 @@ impl Login {
             .context("host parse error")?
             .to_string();
 
+        let cookie_store: Arc<CookieStoreMutex> = CookieStore::load().unwrap().arc();
+
         let cookie_vec = vec![("READJS", "\"off\""), ("yuki", "akari")];
         let cookie = encoder::cookie_from_vec(cookie_vec.clone());
-
         let headers = encoder::headers_from_vec(encoder::base_headers())?;
-
-        let cookie_store = CookieStore::load().unwrap().arc();
         let client = reqwest::Client::builder()
             .default_headers(headers)
             .cookie_provider(Arc::clone(&cookie_store))
@@ -58,6 +53,10 @@ impl Login {
             return Ok(());
         }
 
+        let (email, password) = match (config.email, config.password) {
+            (Some(email), Some(password)) => (email, password),
+            _ => return Ok(()),
+        };
         // ログイン画面のフォームデータを生成
         let form = vec![
             ("em", email.as_str()),
@@ -82,10 +81,6 @@ impl Login {
         CookieStore::save(cookie_store.clone()).unwrap();
 
         let html = &resp.text().await.context("failed to get html")?;
-        println!(
-            "starts {}",
-            html.starts_with(r#"<h2 class="form-signin-heading">"#)
-        );
         if html.contains("ログインできません") {
             return Err(anyhow::anyhow!(
                 "ERROR: login failed (email or password is wrong)"

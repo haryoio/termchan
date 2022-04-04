@@ -1666,6 +1666,7 @@ dependencies = [
  "serde_yaml",
  "tokio",
  "url",
+ "yaml-rust",
 ]
 
 [[package]]

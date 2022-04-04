@@ -1,22 +1,24 @@
-general:
-    proxy: false
-    login: false
-    write: true
-    bbsmenu_url:
-        - https://menu.1.net/menu.html
-        - https://menu.2.net/menu.html
-        - https://menu.3.net/menu.html
-    liked_board_path:
-        custom: false
-        path: $HOME/.config/termchan/liked.json
+bbsmenu:
+    url:
+        - https://menu.2ch.sc/bbsmenu.html
 
-login:
-    url: http
-    email: email@example.com
-    password: password
+# liked_board_path:
+#     custom: false
+#     path: $HOME/.config/termchan/liked.json
 
-write:
-    with_login: false
+# login:
+#     url: http
+#     email: email@example.com
+#     password: password
 
-proxy:
-    url: http
+# post:
+#     use_login: false
+#     repost_interval: 0
+
+# proxy:
+#     host: host
+#     port: 9999
+#     user: user
+#     password: password
+
+

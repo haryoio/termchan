@@ -1,32 +1,36 @@
-project_name = "termchan"
+PROJECT_NAME = "termchan"
+DEPENDENICIES = "cargo-watch"
 
 .PHONY: core
 core:
-	@echo "$(project_name) try to run core"
+	@echo "$(PROJECT_NAME) try to run core"
 	cargo run
+
 
 .PHONY: cli
 cli:
-	@echo "$(project_name) try to run cli"
+	@echo "$(PROJECT_NAME) try to run cli"
 	cargo run -p $@
-
-.PHONY: fmt
-fmt:
-	@echo "Formatting..."
-	cargo fmt --all
-	@echo "Done."
-
 .PHONY: test
 test:
-	@echo "$(project_name) try to test"
+	@echo "$(PROJECT_NAME) try to test"
 	cargo test -- --nocapture
 
 .PHONY: test-bbsmenu
 test-bbsmenu:
-	@echo "$(project_name) try to test bbsmenu"
+	@echo "$(PROJECT_NAME) try to test bbsmenu"
 	cargo test bbsmenu -- --nocapture
 
 .PHONY: test-encoder
 test-encoder:
-	@echo "$(project_name) try to test encoder"
-	cargo test -p core encoder -- --nocapture
+	@echo "$(PROJECT_NAME) try to test encoder"
+	cargo test encoder -- --nocapture
+
+.PHONY: test-config
+test-config:
+	@echo "$(PROJECT_NAME) try to test config"
+	cargo test config -- --nocapture
+
+.PHONY: fmt
+fmt:
+	cargo fmt
