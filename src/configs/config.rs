@@ -1,14 +1,13 @@
 use std::{
     fs,
     io::{Read, Write},
-    path::Path,
 };
 
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 use crate::configs::{
-    self, bbsmenu::BBSMenuConfig, board::BoardConfig, cookie::CookieConfig, login::LoginConfig,
+    bbsmenu::BBSMenuConfig, board::BoardConfig, cookie::CookieConfig, login::LoginConfig,
     post::PostConfig, proxy::ProxyConfig,
 };
 
@@ -17,11 +16,11 @@ const APP_NAME: &str = "termchan";
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub bbsmenu: BBSMenuConfig,
-    pub board:   Option<BoardConfig>,
-    pub login:   Option<LoginConfig>,
-    pub post:    Option<PostConfig>,
-    pub proxy:   Option<ProxyConfig>,
-    pub cookie:  Option<CookieConfig>,
+    pub board: Option<BoardConfig>,
+    pub login: Option<LoginConfig>,
+    pub post: Option<PostConfig>,
+    pub proxy: Option<ProxyConfig>,
+    pub cookie: Option<CookieConfig>,
 }
 
 impl Config {
@@ -44,7 +43,6 @@ impl Config {
 
         file.read_to_string(&mut contents)
             .context("failed to read config file")?;
-        println!("{}", contents);
         let config: Config =
             serde_yaml::from_str(&contents).context("failed to parse config file")?;
 
@@ -71,12 +69,12 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            cookie:  Some(CookieConfig::default()),
+            cookie: Some(CookieConfig::default()),
             bbsmenu: BBSMenuConfig::default(),
-            board:   None,
-            login:   None,
-            post:    None,
-            proxy:   None,
+            board: None,
+            login: None,
+            post: None,
+            proxy: None,
         }
     }
 }

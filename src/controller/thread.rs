@@ -12,37 +12,45 @@ pub type Threads = Vec<Thread>;
 
 #[derive(Debug, Clone)]
 pub struct Thread {
-    server_name:    String,
-    board_key:      String,
-    id:             String,
-    title:          String,
-    count:          Cell<usize>,
-    replies:        RefCell<Replies>,
+    server_name: String,
+    board_key: String,
+    pub id: String,
+    pub title: String,
+    pub count: Cell<usize>,
+    replies: RefCell<Replies>,
     is_first_fetch: Cell<bool>,
-    is_stopdone:    Cell<bool>,
+    is_stopdone: Cell<bool>,
 }
 
 impl Thread {
     pub async fn new(server: &str, board: &str, id: &str, title: &str, count: usize) -> Thread {
         Thread {
-            server_name:    server.to_string(),
-            board_key:      board.to_string(),
-            id:             id.to_string(),
-            title:          title.to_string(),
-            count:          Cell::new(count),
-            replies:        RefCell::new(Vec::new()),
+            server_name: server.to_string(),
+            board_key: board.to_string(),
+            id: id.to_string(),
+            title: title.to_string(),
+            count: Cell::new(count),
+            replies: RefCell::new(Vec::new()),
             is_first_fetch: Cell::new(true),
-            is_stopdone:    Cell::new(false),
+            is_stopdone: Cell::new(false),
         }
     }
 
-    pub fn get_server_name(&self) -> &str { &self.server_name }
+    pub fn get_server_name(&self) -> &str {
+        &self.server_name
+    }
 
-    pub fn get_board_key(&self) -> &str { &self.board_key }
+    pub fn get_board_key(&self) -> &str {
+        &self.board_key
+    }
 
-    pub fn get_id(&self) -> &str { &self.id }
+    pub fn get_id(&self) -> &str {
+        &self.id
+    }
 
-    pub fn get_title(&self) -> &str { &self.title }
+    pub fn get_title(&self) -> &str {
+        &self.title
+    }
 
     // スレッドのURLを取得
     // https://<server_name>/test/read.cgi/<board_key>/<thread_id>/
@@ -65,7 +73,9 @@ impl Thread {
         )
     }
 
-    pub fn is_stopdone(&self) -> bool { self.is_stopdone.get() }
+    pub fn is_stopdone(&self) -> bool {
+        self.is_stopdone.get()
+    }
 
     pub fn parse(&self, html: &str) -> Replies {
         if pattterns::is_stopdone(&html) {
@@ -129,14 +139,14 @@ impl Thread {
 impl Default for Thread {
     fn default() -> Self {
         Thread {
-            server_name:    "".to_string(),
-            board_key:      "".to_string(),
-            id:             "".to_string(),
-            title:          "".to_string(),
-            count:          Cell::new(0),
-            replies:        RefCell::new(Vec::new()),
+            server_name: "".to_string(),
+            board_key: "".to_string(),
+            id: "".to_string(),
+            title: "".to_string(),
+            count: Cell::new(0),
+            replies: RefCell::new(Vec::new()),
             is_first_fetch: Cell::new(true),
-            is_stopdone:    Cell::new(false),
+            is_stopdone: Cell::new(false),
         }
     }
 }

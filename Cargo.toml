@@ -9,13 +9,12 @@ members = ["cli"]
 [dependencies]
 anyhow = "1.0.56"
 async-trait = "0.1.52"
-configparser = "3.0.0"
-confy = { version = "0.4.0", default-features = true }
 # reqwest_cookie_storeがcookie_store 0.15.1以下にしか対応していない
 # 対応までは0.15.1以下のバージョンを使用する
 cookie_store = "0.15.1"
 dirs = "4.0.0"
 encoding_rs = "0.8.30"
+futures = "0.3.21"
 lazy_static = "1.4.0"
 percent-encoding = "2.1.0"
 regex = "1.5.5"

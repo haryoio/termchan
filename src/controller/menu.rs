@@ -1,10 +1,7 @@
 use anyhow::Context;
 use regex::Regex;
 
-use crate::{
-    encoder::{is_utf8, sjis_to_utf8},
-    receiver::Reciever,
-};
+use crate::receiver::Reciever;
 
 fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
     let html = Regex::new(r#" TARGET=(.*?)>"#)
@@ -114,13 +111,13 @@ impl BbsMenu {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BbsCategories {
     pub category: String,
     pub list: Vec<BbsUrl>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BbsUrl {
     pub url: String,
     pub title: String,
@@ -130,21 +127,29 @@ pub struct BbsUrl {
 mod tests {
     use super::*;
 
+    // #[tokio::test]
+    // async fn test_get_5ch_bbsmenu() {
+    //     let url = "https://menu.5ch.net/bbsmenu.html";
+    //     let bbsmenu = BbsMenu::new(url.to_string());
+    //     let result = bbsmenu.load().await;
+    //     assert!(result.is_ok());
+    //     let res = result.unwrap();
+    //     println!("{:?}", &res[0]);
+    //     println!("{:?}", &res[1]);
+    //     println!("{:?}", &res[2]);
+    //     println!("{:?}", &res[3]);
+    // }
+
     #[tokio::test]
-    async fn test_get_5ch_bbsmenu() {
-        let url = "https://menu.5ch.net/bbsmenu.html";
+    async fn test_get_2ch_bbsmenu() {
+        let url = "https://menu.2ch.sc/bbsmenu.html";
         let bbsmenu = BbsMenu::new(url.to_string());
         let result = bbsmenu.load().await;
-        println!("{:?}", result);
         assert!(result.is_ok());
+        let res = result.unwrap();
+        println!("{:?}", &res[0]);
+        println!("{:?}", &res[1]);
+        println!("{:?}", &res[2]);
+        println!("{:?}", &res[3]);
     }
-
-    // #[tokio::test]
-    // async fn test_get_2ch_bbsmenu() {
-    //     let url = "https://menu.2ch.sc/bbsmenu.html";
-    //     let bbsmenu = Bbsmenu::new(url.to_string());
-    //     let result = bbsmenu.load().await;
-    //     println!("{:?}", result);
-    //     assert!(result.is_ok());
-    // }
 }
