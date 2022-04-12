@@ -7,7 +7,8 @@ use crate::{
     receiver::Reciever,
 };
 
-async fn normalize_board(html: &str, url: Url) -> anyhow::Result<Vec<Thread>> {
+async fn normalize_board(html: &str, url: String) -> anyhow::Result<Vec<Thread>> {
+    let url = Url::parse(&url).context("failed to parse url")?;
     let server_name = url.host_str().unwrap().to_string();
     let board_key = url.path().split("/").nth(1).unwrap().to_string();
     let mut threads = Vec::new();
@@ -29,17 +30,15 @@ async fn normalize_board(html: &str, url: Url) -> anyhow::Result<Vec<Thread>> {
 
 #[derive(Debug)]
 pub struct Board {
-    pub url: Url,
+    pub url: String,
 }
 
 impl Board {
-    pub fn new(url: &str) -> anyhow::Result<Board> {
-        //  https://<server_name>/<board_key>/subback.html
-        let url = url::Url::parse(&url).expect("url parse error");
-        anyhow::Ok(Board { url })
+    pub fn new(url: String) -> Self {
+        Self { url }
     }
     pub async fn load(&self) -> anyhow::Result<Threads> {
-        let html = Reciever::get(&self.url.as_str()).await?.html();
+        let html = Reciever::get(&self.url).await?.html();
 
         anyhow::Ok(normalize_board(html.as_str(), self.url.clone()).await?)
     }
