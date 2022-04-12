@@ -38,7 +38,7 @@ impl Board {
         let url = url::Url::parse(&url).expect("url parse error");
         anyhow::Ok(Board { url })
     }
-    pub async fn laod(&self) -> anyhow::Result<Threads> {
+    pub async fn load(&self) -> anyhow::Result<Threads> {
         let html = Reciever::get(&self.url.as_str()).await?.html();
 
         anyhow::Ok(normalize_board(html.as_str(), self.url.clone()).await?)
