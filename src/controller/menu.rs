@@ -56,7 +56,7 @@ fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
     } // for l in splitted
 
     let mut categories: Vec<BbsCategories> = Vec::new();
-    let mut links: Vec<BbsUrl> = Vec::new();
+    let mut links: Vec<BoardUrl> = Vec::new();
     for l in lines {
         let s = l.split(">").collect::<Vec<&str>>();
         match s.len() {
@@ -76,7 +76,7 @@ fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
                 } else {
                     title
                 };
-                links.push(BbsUrl { title, url });
+                links.push(BoardUrl { title, url });
             }
             _ => {
                 return Err(anyhow::anyhow!("failed to parse categories"));
@@ -114,11 +114,11 @@ impl BbsMenu {
 #[derive(Debug, Clone)]
 pub struct BbsCategories {
     pub category: String,
-    pub list: Vec<BbsUrl>,
+    pub list: Vec<BoardUrl>,
 }
 
 #[derive(Debug, Clone)]
-pub struct BbsUrl {
+pub struct BoardUrl {
     pub url: String,
     pub title: String,
 }
