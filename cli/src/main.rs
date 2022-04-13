@@ -1,16 +1,18 @@
+use std::{error::Error, io};
+
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Block, Borders, List, ListItem, Paragraph},
-    Frame, Terminal,
+    Frame,
+    Terminal,
 };
 use unicode_width::UnicodeWidthStr;
 
@@ -22,19 +24,19 @@ enum InputMode {
 /// App holds the state of the application
 struct App {
     /// Current value of the input box
-    input: String,
+    input:      String,
     /// Current input mode
     input_mode: InputMode,
     /// History of recorded messages
-    messages: Vec<String>,
+    messages:   Vec<String>,
 }
 
 impl Default for App {
     fn default() -> App {
         App {
-            input: String::new(),
+            input:      String::new(),
             input_mode: InputMode::Normal,
-            messages: Vec::new(),
+            messages:   Vec::new(),
         }
     }
 }
@@ -73,30 +75,34 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 
         if let Event::Key(key) = event::read()? {
             match app.input_mode {
-                InputMode::Normal => match key.code {
-                    KeyCode::Char('e') => {
-                        app.input_mode = InputMode::Editing;
+                InputMode::Normal => {
+                    match key.code {
+                        KeyCode::Char('e') => {
+                            app.input_mode = InputMode::Editing;
+                        }
+                        KeyCode::Char('q') => {
+                            return Ok(());
+                        }
+                        _ => {}
                     }
-                    KeyCode::Char('q') => {
-                        return Ok(());
+                }
+                InputMode::Editing => {
+                    match key.code {
+                        KeyCode::Enter => {
+                            app.messages.push(app.input.drain(..).collect());
+                        }
+                        KeyCode::Char(c) => {
+                            app.input.push(c);
+                        }
+                        KeyCode::Backspace => {
+                            app.input.pop();
+                        }
+                        KeyCode::Esc => {
+                            app.input_mode = InputMode::Normal;
+                        }
+                        _ => {}
                     }
-                    _ => {}
-                },
-                InputMode::Editing => match key.code {
-                    KeyCode::Enter => {
-                        app.messages.push(app.input.drain(..).collect());
-                    }
-                    KeyCode::Char(c) => {
-                        app.input.push(c);
-                    }
-                    KeyCode::Backspace => {
-                        app.input.pop();
-                    }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
-                    _ => {}
-                },
+                }
             }
         }
     }
@@ -117,26 +123,30 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .split(f.size());
 
     let (msg, style) = match app.input_mode {
-        InputMode::Normal => (
-            vec![
-                Span::raw("Press "),
-                Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to exit, "),
-                Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to start editing."),
-            ],
-            Style::default().add_modifier(Modifier::RAPID_BLINK),
-        ),
-        InputMode::Editing => (
-            vec![
-                Span::raw("Press "),
-                Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to stop editing, "),
-                Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(" to record the message"),
-            ],
-            Style::default(),
-        ),
+        InputMode::Normal => {
+            (
+                vec![
+                    Span::raw("Press "),
+                    Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" to exit, "),
+                    Span::styled("e", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" to start editing."),
+                ],
+                Style::default().add_modifier(Modifier::RAPID_BLINK),
+            )
+        }
+        InputMode::Editing => {
+            (
+                vec![
+                    Span::raw("Press "),
+                    Span::styled("Esc", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" to stop editing, "),
+                    Span::styled("Enter", Style::default().add_modifier(Modifier::BOLD)),
+                    Span::raw(" to record the message"),
+                ],
+                Style::default(),
+            )
+        }
     };
     let mut text = Text::from(Spans::from(msg));
     text.patch_style(style);

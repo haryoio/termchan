@@ -56,5 +56,7 @@ impl CookieStore {
         Ok(())
     }
 
-    pub fn arc(&self) -> Arc<CookieStoreMutex> { Arc::clone(&self.arc) }
+    pub fn arc(&self) -> Arc<CookieStoreMutex> {
+        Arc::clone(&self.arc)
+    }
 }

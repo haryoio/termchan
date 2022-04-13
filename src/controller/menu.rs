@@ -114,12 +114,12 @@ impl BbsMenu {
 #[derive(Debug, Clone)]
 pub struct BbsCategories {
     pub category: String,
-    pub list: Vec<BoardUrl>,
+    pub list:     Vec<BoardUrl>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BoardUrl {
-    pub url: String,
+    pub url:   String,
     pub title: String,
 }
 

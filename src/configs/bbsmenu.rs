@@ -6,5 +6,7 @@ pub struct BBSMenuConfig {
 }
 
 impl Default for BBSMenuConfig {
-    fn default() -> Self { BBSMenuConfig { url: vec![] } }
+    fn default() -> Self {
+        BBSMenuConfig { url: vec![] }
+    }
 }

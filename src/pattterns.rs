@@ -12,7 +12,6 @@ use regex::Regex;
 /// | 3 | date     | 投稿日時    |
 /// | 4 | id       | ユーザID    |
 /// | 5 | message  | 本文        |
-///
 pub fn parse_replies(before: &str) -> regex::CaptureMatches {
     lazy_static! {
         static ref RE:Regex = Regex::new(r###"<div class="meta"><span class="number">(?P<reply_id>\d+)</span><span class="name"><b>(?P<name>.*?)</b></span><span class="date">(?P<date>.*?)</span><span class="uid">(?P<id>.*?)</span></div><div class="message"><span class="escaped">(?P<message>.*?)</span></div>"###).unwrap();

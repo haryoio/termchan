@@ -7,8 +7,12 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
 use crate::configs::{
-    bbsmenu::BBSMenuConfig, board::BoardConfig, cookie::CookieConfig, login::LoginConfig,
-    post::PostConfig, proxy::ProxyConfig,
+    bbsmenu::BBSMenuConfig,
+    board::BoardConfig,
+    cookie::CookieConfig,
+    login::LoginConfig,
+    post::PostConfig,
+    proxy::ProxyConfig,
 };
 
 const APP_NAME: &str = "termchan";
@@ -16,11 +20,11 @@ const APP_NAME: &str = "termchan";
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub bbsmenu: BBSMenuConfig,
-    pub board: Option<BoardConfig>,
-    pub login: Option<LoginConfig>,
-    pub post: Option<PostConfig>,
-    pub proxy: Option<ProxyConfig>,
-    pub cookie: Option<CookieConfig>,
+    pub board:   Option<BoardConfig>,
+    pub login:   Option<LoginConfig>,
+    pub post:    Option<PostConfig>,
+    pub proxy:   Option<ProxyConfig>,
+    pub cookie:  Option<CookieConfig>,
 }
 
 impl Config {
@@ -69,12 +73,12 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            cookie: Some(CookieConfig::default()),
+            cookie:  Some(CookieConfig::default()),
             bbsmenu: BBSMenuConfig::default(),
-            board: None,
-            login: None,
-            post: None,
-            proxy: None,
+            board:   None,
+            login:   None,
+            post:    None,
+            proxy:   None,
         }
     }
 }

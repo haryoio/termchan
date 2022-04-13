@@ -41,7 +41,11 @@ impl Reciever {
         })
     }
 
-    pub fn url(&self) -> String { self.url.clone() }
+    pub fn url(&self) -> String {
+        self.url.clone()
+    }
 
-    pub fn html(&self) -> String { self.html.clone() }
+    pub fn html(&self) -> String {
+        self.html.clone()
+    }
 }
