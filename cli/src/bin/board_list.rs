@@ -8,21 +8,21 @@ use std::{
     sync::{mpsc, Arc, Mutex},
     thread::{self, Thread},
     time::Duration,
+    vec,
 };
-
-use futures::executor::block_on;
 
 use anyhow::Context;
 use crossterm::{
     event::{self, Event as CEvent, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
+use futures::executor::block_on;
 use termchan::{
     configs::config::Config,
     controller::{
         board::Board,
         menu::{BbsCategories, BbsMenu, BoardUrl},
-        reply::Reply,
+        reply::{self, Reply},
         thread::Thread as TCThread,
     },
 };
@@ -31,7 +31,7 @@ use tui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::Span,
+    text::{Span, Spans},
     widgets::{Block, BorderType, Borders, List, ListItem, ListState},
     Terminal,
 };
@@ -49,19 +49,19 @@ enum InputMode {
 /// App holds the state of the application
 struct App {
     /// Current value of the input box
-    input: String,
+    input:      String,
     /// Current input mode
     input_mode: InputMode,
     /// History of recorded messages
-    messages: Vec<String>,
+    messages:   Vec<String>,
 }
 
 impl Default for App {
     fn default() -> App {
         App {
-            input: String::new(),
+            input:      String::new(),
             input_mode: InputMode::Normal,
-            messages: Vec::new(),
+            messages:   Vec::new(),
         }
     }
 }
@@ -86,17 +86,17 @@ enum Pane {
 #[derive(Debug, Clone)]
 struct State {
     pub category_list_state: ListState,
-    pub board_list_state: ListState,
-    pub thread_list_state: ListState,
-    pub reply_list_state: ListState,
-    pub current_history: TabItem,
-    pub history: Vec<TabItem>,
-    pub category_list: Vec<BbsCategories>,
-    pub board_list: Arc<Mutex<RefCell<Vec<BoardUrl>>>>,
-    pub thread_list: Vec<TCThread>,
-    pub reply_list: Vec<Reply>,
-    pub board_url: String,
-    pub focus_left_or_right: Cell<Pane>,
+    pub board_list_state:    ListState,
+    pub thread_list_state:   ListState,
+    pub reply_list_state:    ListState,
+    pub current_history:     TabItem,
+    pub history:             Vec<TabItem>,
+    pub category_list:       Vec<BbsCategories>,
+    pub board_list:          Arc<Mutex<RefCell<Vec<BoardUrl>>>>,
+    pub thread_list:         Vec<TCThread>,
+    pub reply_list:          Vec<Reply>,
+    pub board_url:           String,
+    pub focus_pane:          Cell<Pane>,
 }
 
 impl State {
@@ -120,10 +120,10 @@ impl State {
             history: Vec::new(),
             category_list: Vec::new(),
             board_list: Arc::new(Mutex::new(RefCell::new(Vec::new()))),
-            thread_list: Vec::new(),
-            reply_list: Vec::new(),
+            thread_list: vec![TCThread::default()],
+            reply_list: vec![Reply::default()],
             board_url: String::new(),
-            focus_left_or_right: Cell::new(Pane::Left),
+            focus_pane: Cell::new(Pane::Left),
         }
     }
     pub fn current_category(&self) -> &BbsCategories {
@@ -195,7 +195,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    loop {
+    'main: loop {
         terminal.draw(|f| {
             let size = f.size();
             // 一番上のレイアウトを定義
@@ -216,8 +216,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         )
                         .split(chunks[0]);
                     let (left, right) = render_bbsmenu(&mut state.clone());
+
                     let category_state = &state.clone().category_list_state;
                     f.render_stateful_widget(left, board_chunks[0], &mut category_state.to_owned());
+
                     let board_state = &state.clone().board_list_state;
                     f.render_stateful_widget(right, board_chunks[1], &mut board_state.to_owned());
                 }
@@ -228,7 +230,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             [Constraint::Percentage(40), Constraint::Percentage(60)].as_ref(),
                         )
                         .split(chunks[0]);
+
                     let (left, right) = render_board(&mut state.clone());
+
                     let thread_list_state = &state.clone().thread_list_state;
                     f.render_stateful_widget(
                         left,
@@ -248,130 +252,149 @@ async fn main() -> Result<(), Box<dyn Error>> {
         })?;
 
         match rx.recv()? {
-            Event::Input(event) => match event.code {
-                KeyCode::Char('q') => {
-                    disable_raw_mode()?;
-                    terminal.show_cursor()?;
-                    break;
-                }
-                KeyCode::Up => {
-                    match &state.current_history {
-                        TabItem::Bbsmenu => match &state.focus_left_or_right.get() {
-                            // Category
-                            Pane::Left => {
-                                let selected = state.category_list_state.selected();
-                                if selected.is_some() {
-                                    state.category_list_state.select(selected.and_then(|i| {
-                                        if i <= 0 {
-                                            Some(state.category_list.len() - 1)
-                                        } else {
-                                            Some(i - 1)
-                                        }
-                                    }));
-                                }
-                                let selected_category = state.current_category();
-                                let mut state = state.clone();
-                                state.set_board_list(selected_category.list.clone());
-                            }
-                            // BoardList
-                            Pane::Right => {
-                                let selected = state.board_list_state.selected();
-                                if selected.is_some() {
-                                    state.board_list_state.select(selected.and_then(|i| {
-                                        let len = (*state.board_list.lock().unwrap().borrow_mut())
-                                            .get_mut()
-                                            .len();
-                                        if i <= 0 {
-                                            Some(len - 1)
-                                        } else {
-                                            Some(i - 1)
-                                        }
-                                    }));
-                                }
-                            }
-                        },
-                        TabItem::Board => todo!(),
-                        TabItem::Thread => todo!(),
-                        TabItem::Settings => todo!(),
-                    };
-                }
-                KeyCode::Down => {
-                    match &state.current_history {
-                        TabItem::Bbsmenu => match &state.focus_left_or_right.get() {
-                            // Category
-                            Pane::Left => {
-                                let selected = state.category_list_state.selected();
-
-                                if selected.is_some() {
-                                    state.category_list_state.select(selected.and_then(|i| {
-                                        if i >= state.category_list.len() - 1 {
-                                            Some(0)
-                                        } else {
-                                            Some(i + 1)
-                                        }
-                                    }));
-                                }
-                                let selected_category = state.current_category();
-                                let mut state = state.clone();
-                                state.set_board_list(selected_category.list.clone());
-                            }
-                            // BoardList
-                            Pane::Right => {
-                                let selected = state.board_list_state.selected();
-                                if selected.is_some() {
-                                    state.board_list_state.select(selected.and_then(|i| {
-                                        let len = (*state.board_list.lock().unwrap().borrow_mut())
-                                            .get_mut()
-                                            .len();
-                                        if i >= len - 1 {
-                                            Some(0)
-                                        } else {
-                                            Some(i + 1)
-                                        }
-                                    }));
-                                }
-                            }
-                        },
-                        TabItem::Board => todo!(),
-                        TabItem::Thread => todo!(),
-                        TabItem::Settings => todo!(),
-                    };
-                }
-
-                KeyCode::Enter => {
-                    if state.focus_left_or_right.get() == Pane::Left {
+            Event::Input(event) => {
+                match event.code {
+                    KeyCode::Char('q') => {
+                        disable_raw_mode()?;
+                        terminal.show_cursor()?;
+                        break;
+                    }
+                    KeyCode::Up => {
                         match &state.current_history {
-                            // 左ペインでEnterを押すと、左右ペインへ移動する。
-                            TabItem::Bbsmenu => state.focus_left_or_right.set(Pane::Right),
-                            TabItem::Board => todo!(),
-                            TabItem::Thread => todo!(),
-                            TabItem::Settings => todo!(),
-                        }
-                    } else {
-                        // 右ペインでEnterを押すと、次のタブへ移動する
-                        match &state.current_history {
-                            // 板を選択,スレッド一覧画面へ移行
                             TabItem::Bbsmenu => {
-                                // 選択した板URLを取得
-                                state.board_url = state.current_board().url.clone();
-                                // TODO: 選択した板からスレッド一覧を取得する
-                                // TODO: スレッド一覧をStateへコピー
-                                // ヒストリに板タブを追加
-                                state.add_history(TabItem::Board);
+                                match &state.focus_pane.get() {
+                                    // Category
+                                    Pane::Left => {
+                                        let selected = state.category_list_state.selected();
+                                        if selected.is_some() {
+                                            state.category_list_state.select(selected.and_then(
+                                                |i| {
+                                                    if i <= 0 {
+                                                        Some(state.category_list.len() - 1)
+                                                    } else {
+                                                        Some(i - 1)
+                                                    }
+                                                },
+                                            ));
+                                        }
+                                        let selected_category = state.current_category();
+                                        let mut state = state.clone();
+                                        state.set_board_list(selected_category.list.clone());
+                                    } // Down -> Bbsmenu -> Pane::Left
+                                    // BoardList
+                                    Pane::Right => {
+                                        let selected = state.board_list_state.selected();
+                                        if selected.is_some() {
+                                            state.board_list_state.select(selected.and_then(|i| {
+                                                let len = (*state
+                                                    .board_list
+                                                    .lock()
+                                                    .unwrap()
+                                                    .borrow_mut())
+                                                .get_mut()
+                                                .len();
+                                                if i <= 0 {
+                                                    Some(len - 1)
+                                                } else {
+                                                    Some(i - 1)
+                                                }
+                                            }));
+                                        }
+                                    } // Down -> Bbsmenu -> Pane::Right
+                                }
                             }
-                            TabItem::Board => {
-                                //
-                                todo!()
-                            }
+                            TabItem::Board => todo!(),
                             TabItem::Thread => todo!(),
                             TabItem::Settings => todo!(),
                         };
                     }
+                    KeyCode::Down => {
+                        match &state.current_history {
+                            TabItem::Bbsmenu => {
+                                match &state.focus_pane.get() {
+                                    // Category
+                                    Pane::Left => {
+                                        let selected = state.category_list_state.selected();
+
+                                        if selected.is_some() {
+                                            state.category_list_state.select(selected.and_then(
+                                                |i| {
+                                                    if i >= state.category_list.len() - 1 {
+                                                        Some(0)
+                                                    } else {
+                                                        Some(i + 1)
+                                                    }
+                                                },
+                                            ));
+                                        }
+                                        let selected_category = state.current_category();
+                                        let mut state = state.clone();
+                                        state.set_board_list(selected_category.list.clone());
+                                    } // Down -> Bbsmenu -> Pane::Left
+                                    // BoardList
+                                    Pane::Right => {
+                                        let selected = state.board_list_state.selected();
+                                        if selected.is_some() {
+                                            state.board_list_state.select(selected.and_then(|i| {
+                                                let len = (*state
+                                                    .board_list
+                                                    .lock()
+                                                    .unwrap()
+                                                    .borrow_mut())
+                                                .get_mut()
+                                                .len();
+                                                if i >= len - 1 {
+                                                    Some(0)
+                                                } else {
+                                                    Some(i + 1)
+                                                }
+                                            }));
+                                        }
+                                    } // Down -> Bbsmenu -> Pane::Left
+                                }
+                            }
+                            TabItem::Board => todo!(),
+                            TabItem::Thread => todo!(),
+                            TabItem::Settings => todo!(),
+                        };
+                    }
+
+                    KeyCode::Enter => {
+                        if state.focus_pane.get() == Pane::Left {
+                            match &state.current_history {
+                                // 左ペインでEnterを押すと、左右ペインへ移動する。
+                                TabItem::Bbsmenu => state.focus_pane.set(Pane::Right),
+                                TabItem::Board => todo!(),
+                                TabItem::Thread => todo!(),
+                                TabItem::Settings => todo!(),
+                            }
+                        } else {
+                            // 右ペインでEnterを押すと、次のタブへ移動する
+                            match &state.current_history {
+                                // 板を選択,スレッド一覧画面へ移行
+                                TabItem::Bbsmenu => {
+                                    // 選択した板URLを取得
+                                    state.board_url = state.current_board().url.clone();
+                                    // TODO: 選択した板からスレッド一覧を取得する
+                                    state.thread_list =
+                                    // TODO: スレッド一覧をStateへコピー
+                                    // ヒストリに板タブを追加
+                                    state.add_history(TabItem::Board);
+                                }
+                                TabItem::Board => {
+                                    //
+                                    todo!()
+                                }
+                                TabItem::Thread => todo!(),
+                                TabItem::Settings => todo!(),
+                            };
+                        }
+                    }
+                    KeyCode::Left => state.focus_pane.set(Pane::Left),
+                    KeyCode::Right => state.focus_pane.set(Pane::Right),
+                    _ => {}
                 }
-                KeyCode::Left => state.focus_left_or_right.set(Pane::Left),
-                KeyCode::Right => state.focus_left_or_right.set(Pane::Right),
-                _ => {}
-            },
+            }
             Event::Tick => {}
             Event::Init => {}
         }
@@ -385,7 +408,7 @@ fn render_bbsmenu<'a>(state: &mut State) -> (List<'a>, List<'a>) {
     let category_list_block = Block::default()
         .borders(Borders::all())
         .style(
-            Style::default().fg(if state.focus_left_or_right.get() == Pane::Left {
+            Style::default().fg(if state.focus_pane.get() == Pane::Left {
                 Color::White
             } else {
                 Color::Black
@@ -418,7 +441,7 @@ fn render_bbsmenu<'a>(state: &mut State) -> (List<'a>, List<'a>) {
     let board_block = Block::default()
         .borders(Borders::all())
         .style(
-            Style::default().fg(if state.focus_left_or_right.get() == Pane::Right {
+            Style::default().fg(if state.focus_pane.get() == Pane::Right {
                 Color::White
             } else {
                 Color::Black
@@ -453,24 +476,85 @@ fn render_bbsmenu<'a>(state: &mut State) -> (List<'a>, List<'a>) {
 }
 
 fn render_board<'a>(state: &mut State) -> (List<'a>, List<'a>) {
-    // TODO: スレッドリスト用のブロックを作成
-    let thread_list_block = unimplemented!();
+    // スレッドリスト用のブロックを作成
+    let thread_list_block = Block::default()
+        .borders(Borders::all())
+        .style(
+            Style::default().fg(if state.focus_pane.get() == Pane::Left {
+                Color::White
+            } else {
+                Color::Black
+            }),
+        )
+        .title("ThreadList")
+        .border_type(BorderType::Plain);
 
-    // TODO: stateのスレッド一覧をListItemへ変換
-    let thread_items: Vec<ListItem> = unimplemented!();
+    // stateのスレッド一覧をListItemへ変換
+    let thread_items: Vec<ListItem> = state
+        .thread_list
+        .iter()
+        .map(|thread| {
+            ListItem::new(Span::styled(
+                thread.title.clone(),
+                Style::default().fg(Color::White),
+            ))
+        })
+        .collect();
+
+    // Listを作成
+    let thread_list = List::new(thread_items)
+        .block(thread_list_block)
+        .highlight_style(
+            Style::default()
+                .bg(Color::Yellow)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        );
+
+    // リプライ用のブロックを作成
+    let reply_list_block = Block::default()
+        .borders(Borders::all())
+        .style(
+            Style::default().fg(if state.focus_pane.get() == Pane::Right {
+                Color::White
+            } else {
+                Color::Black
+            }),
+        )
+        .title("ReplyList")
+        .border_type(BorderType::Plain);
+
+    // stateからリプライ一覧を取得、ListItemへ変換
+    // TODO: messageからURLなどを抜き出しリンク化
+    // TODO: nameを正規化
+    let reply_items: Vec<ListItem> = state
+        .reply_list
+        .iter()
+        .map(|reply| {
+            let text = vec![
+                Span::styled(reply.name.clone(), Style::default().fg(Color::White)),
+                Span::default(reply.date.clone()),
+                Span::default(reply.message.clone()),
+            ];
+            let paragraph = Paragraph::new(text).block(
+                Block::default()
+                    .borders(Borders::BOTTOM)
+                    .title(reply.id.clone())
+                    .border_type(BorderType::Plain),
+            );
+            ListItem::new(paragraph)
+        })
+        .collect();
 
     // TODO: Listを作成
-    let thread_list = unimplemented!();
+    let reply_list = List::new(reply_items)
+        .block(reply_list_block)
+        .highlight_style(
+            Style::default()
+                .bg(Color::Yellow)
+                .fg(Color::Black)
+                .add_modifier(Modifier::BOLD),
+        );
 
-    // TODO: リプライ用のブロックを作成
-    let reply_list_block = unimplemented!();
-
-    // TODO: stateからリプライ一覧を取得、ListItemへ変換
-    //  リプライがない場合はダミーデータ(空の構造体)からListItemを作成
-    let reply_items: Vec<ListItem> = unimplemented!();
-
-    // TODO: Listを作成
-    let reply_list = unimplemented!();
-
-    // (thread_list, reply_list)
+    (thread_list, reply_list)
 }
