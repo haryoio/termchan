@@ -3,7 +3,7 @@ use reqwest::Url;
 
 use crate::{
     controller::thread::{Thread, Threads},
-    pattterns,
+    patterns,
     receiver::Reciever,
 };
 
@@ -12,7 +12,7 @@ async fn normalize_board(html: &str, url: String) -> anyhow::Result<Vec<Thread>>
     let server_name = url.host_str().unwrap().to_string();
     let board_key = url.path().split("/").nth(1).unwrap().to_string();
     let mut threads = Vec::new();
-    for c in pattterns::parse_thread_list(&html) {
+    for c in patterns::parse_thread_list(&html) {
         let group = (
             c.name("id").context("")?.as_str(),
             c.name("title").context("")?.as_str(),

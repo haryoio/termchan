@@ -4,7 +4,7 @@ use anyhow::Context;
 
 use crate::{
     controller::reply::{Replies, Reply},
-    pattterns,
+    patterns,
     receiver::Reciever,
 };
 
@@ -78,12 +78,12 @@ impl Thread {
     }
 
     pub fn parse(&self, html: &str) -> Replies {
-        if pattterns::is_stopdone(&html) {
+        if patterns::is_stopdone(&html) {
             self.is_stopdone.set(true);
         }
 
         let mut replies = Vec::new();
-        for cap in pattterns::parse_replies(html) {
+        for cap in patterns::parse_replies(html) {
             let group = (
                 cap.name("reply_id").unwrap().as_str(),
                 cap.name("name").unwrap().as_str(),
