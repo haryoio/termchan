@@ -3,16 +3,16 @@ use reqwest::Url;
 
 use crate::{
     controller::thread::{Thread, Threads},
-    pattterns,
+    patterns,
     receiver::Reciever,
 };
 
-async fn normalize_board(html: &str, url: String) -> anyhow::Result<Vec<Thread>> {
+fn normalize_board(html: &str, url: String) -> anyhow::Result<Vec<Thread>> {
     let url = Url::parse(&url).context("failed to parse url")?;
     let server_name = url.host_str().unwrap().to_string();
     let board_key = url.path().split("/").nth(1).unwrap().to_string();
     let mut threads = Vec::new();
-    for c in pattterns::parse_thread_list(&html) {
+    for c in patterns::parse_thread_list(&html) {
         let group = (
             c.name("id").context("")?.as_str(),
             c.name("title").context("")?.as_str(),
@@ -20,7 +20,7 @@ async fn normalize_board(html: &str, url: String) -> anyhow::Result<Vec<Thread>>
         );
         match group {
             (id, title, count) => {
-                let thread = Thread::new(&server_name, &board_key, id, title, count).await;
+                let thread = Thread::new(&server_name, &board_key, id, title, count);
                 threads.push(thread);
             }
         }
@@ -35,11 +35,18 @@ pub struct Board {
 
 impl Board {
     pub fn new(url: String) -> Self {
+        let mut url = url.clone();
+        if !url.ends_with("subback.html") {
+            if !url.ends_with("/") {
+                url.push_str("/");
+            }
+            url.push_str("subback.html");
+        };
         Self { url }
     }
-    pub async fn load(&self) -> anyhow::Result<Threads> {
+    pub async fn load(&self) -> anyhow::Result<Vec<Thread>> {
         let html = Reciever::get(&self.url).await?.html();
 
-        anyhow::Ok(normalize_board(html.as_str(), self.url.clone()).await?)
+        anyhow::Ok(normalize_board(html.as_str(), self.url.clone())?)
     }
 }

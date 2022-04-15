@@ -1,6 +1,0 @@
-{
-    "rust-analyzer.serverPath": "/usr/bin/rust-analyzer",
-    "rust-analyzer.rustfmt.extraArgs": [
-        "+nightly"
-    ]
-}

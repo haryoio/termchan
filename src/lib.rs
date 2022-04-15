@@ -10,7 +10,7 @@ pub mod configs {
 pub mod cookie;
 pub mod encoder;
 pub mod login;
-pub mod pattterns;
+pub mod patterns;
 pub mod receiver;
 pub mod sender;
 pub mod controller {
