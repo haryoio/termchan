@@ -8,7 +8,7 @@ use crate::encoder;
 // let client = termch::sender::SenderBuilder::new()
 //      .message("test")
 //      .name(None)
-//      .ronin(vec![(mail, secret)])
+//      .login(vec![(mail, secret)])
 //      .build();
 // !書き込み時のエラー（他所でやってください）などはここで捕まえる
 // let res = client.send().await?;
@@ -101,9 +101,15 @@ impl Sender {
         now as f64
     }
 
-    pub fn get_board_key(&self) -> String { self.url.split("/").nth(5).unwrap().to_string() }
+    pub fn get_board_key(&self) -> String {
+        self.url.split("/").nth(5).unwrap().to_string()
+    }
 
-    pub fn get_thread_id(&self) -> String { self.url.split("/").nth(6).unwrap().to_string() }
+    pub fn get_thread_id(&self) -> String {
+        self.url.split("/").nth(6).unwrap().to_string()
+    }
 
-    pub fn get_host(&self) -> String { self.url.split("/").nth(2).unwrap().to_string() }
+    pub fn get_host(&self) -> String {
+        self.url.split("/").nth(2).unwrap().to_string()
+    }
 }

@@ -1,0 +1,21 @@
+bbsmenu:
+    url:
+        - https://menu.2ch.sc/bbsmenu.html
+# liked_board_path:
+#     custom: false
+#     path: $HOME/.config/termchan/liked.json
+
+# login:
+#     url: http
+#     email: email@example.com
+#     password: password
+
+# post:
+#     use_login: false
+#     repost_interval: 0
+
+# proxy:
+#     host: host
+#     port: 9999
+#     user: user
+#     password: password

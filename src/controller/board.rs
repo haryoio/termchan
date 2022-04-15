@@ -3,57 +3,50 @@ use reqwest::Url;
 
 use crate::{
     controller::thread::{Thread, Threads},
-    pattterns,
+    patterns,
     receiver::Reciever,
 };
 
+fn normalize_board(html: &str, url: String) -> anyhow::Result<Vec<Thread>> {
+    let url = Url::parse(&url).context("failed to parse url")?;
+    let server_name = url.host_str().unwrap().to_string();
+    let board_key = url.path().split("/").nth(1).unwrap().to_string();
+    let mut threads = Vec::new();
+    for c in patterns::parse_thread_list(&html) {
+        let group = (
+            c.name("id").context("")?.as_str(),
+            c.name("title").context("")?.as_str(),
+            c.name("count").context("")?.as_str().parse::<usize>()?,
+        );
+        match group {
+            (id, title, count) => {
+                let thread = Thread::new(&server_name, &board_key, id, title, count);
+                threads.push(thread);
+            }
+        }
+    }
+    Ok(threads)
+}
+
 #[derive(Debug)]
 pub struct Board {
-    url:  Url,
-    html: String,
+    pub url: String,
 }
 
 impl Board {
-    pub fn new(url: &str) -> anyhow::Result<Board> {
-        //  https://<server_name>/<board_key>/subback.html
-        let url = url::Url::parse(&url).expect("url parse error");
-        anyhow::Ok(Board {
-            url,
-            html: String::new(),
-        })
-    }
-    pub async fn parse(&self) -> anyhow::Result<Threads> {
-        let board_key = self.get_board_key();
-        let server_name = self.get_server_name();
-
-        let mut threads = Vec::new();
-        for c in pattterns::parse_thread_list(&self.html) {
-            let group = (
-                c.name("id").context("")?.as_str(),
-                c.name("title").context("")?.as_str(),
-                c.name("count").context("")?.as_str().parse::<usize>()?,
-            );
-            match group {
-                (id, title, count) => {
-                    let thread = Thread::new(&server_name, &board_key, id, title, count).await;
-                    threads.push(thread);
-                }
+    pub fn new(url: String) -> Self {
+        let mut url = url.clone();
+        if !url.ends_with("subback.html") {
+            if !url.ends_with("/") {
+                url.push_str("/");
             }
-        }
-
-        anyhow::Ok(threads)
+            url.push_str("subback.html");
+        };
+        Self { url }
     }
+    pub async fn load(&self) -> anyhow::Result<Vec<Thread>> {
+        let html = Reciever::get(&self.url).await?.html();
 
-    pub async fn get(&self) -> anyhow::Result<Self> {
-        let html = Reciever::get(&self.url.as_str()).await?.html();
-        anyhow::Ok(Board {
-            url:  self.url.clone(),
-            html: html.to_string(),
-        })
+        anyhow::Ok(normalize_board(html.as_str(), self.url.clone())?)
     }
-    pub fn get_url(&self) -> &Url { &self.url }
-
-    pub fn get_server_name(&self) -> String { self.url.host_str().unwrap().to_string() }
-
-    pub fn get_board_key(&self) -> String { self.url.path().split("/").nth(1).unwrap().to_string() }
 }
