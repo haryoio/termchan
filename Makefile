@@ -12,11 +12,6 @@ cli:
 	@echo "$(PROJECT_NAME) try to run cli"
 	cargo run -p $@
 
-.PHONY: cli_b
-cli_b:
-	@echo "$(PROJECT_NAME) try to run cli_b"
-	cargo run -p cli --bin board_list
-
 .PHONY: test-cli-main
 test-cli-main:
 	@echo "$(PROJECT_NAME) try to run test-cli-main"
