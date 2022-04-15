@@ -1,7 +1,6 @@
 bbsmenu:
     url:
         - https://menu.2ch.sc/bbsmenu.html
-
 # liked_board_path:
 #     custom: false
 #     path: $HOME/.config/termchan/liked.json
@@ -20,5 +19,3 @@ bbsmenu:
 #     port: 9999
 #     user: user
 #     password: password
-
-
