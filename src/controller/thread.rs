@@ -102,7 +102,7 @@ impl Thread {
     // https://<server_name>/test/read.cgi/<board_key>/<thread_id>/
     pub fn get_url(&self) -> String {
         format!(
-            "https://{}/test/read.{}/{}/{}/l50",
+            "https://{}/test/read.{}/{}/{}/",
             self.server_name, self.read_mode, self.board_key, self.id
         )
     }
