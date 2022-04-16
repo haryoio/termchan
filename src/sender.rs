@@ -24,7 +24,12 @@ impl Sender {
         })
     }
     // https://<host>/test/read.cgi/<board_key>/<thread_id>/
-    pub async fn send(&self, message: &str) -> anyhow::Result<()> {
+    pub async fn send(
+        &self,
+        message: &str,
+        name: Option<&str>,
+        mail: Option<&str>,
+    ) -> anyhow::Result<()> {
         let url: &str = &self.url;
         let host = self.get_host();
         let thread_id = self.get_thread_id();
@@ -48,10 +53,13 @@ impl Sender {
         ]);
         let headers = encoder::headers_from_vec(headers)?;
 
+        let name = name.unwrap_or("");
+        let mail = mail.unwrap_or("");
+
         // form-data形式のデータを作成
         let form = vec![
-            ("FROM", ""),
-            ("mail", ""),
+            ("FROM", name),
+            ("mail", mail),
             ("MESSAGE", &message),
             ("bbs", &board),
             ("key", &thread_id),
