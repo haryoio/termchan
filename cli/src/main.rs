@@ -27,10 +27,12 @@ use termchan::{
 use tokio::time::Instant;
 use tui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
+    text::{Span, Spans, Text},
+    widgets::{
+        canvas::Rectangle, Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph,
+    },
     Terminal,
 };
 
@@ -206,13 +208,14 @@ async fn main() -> anyhow::Result<()> {
         }
     });
 
+    let show_popup = false;
+
     loop {
         terminal.draw(|f| {
             let size = f.size();
             // 一番上のレイアウトを定義
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .margin(2)
                 .constraints([Constraint::Min(10)].as_ref())
                 .split(size);
 
@@ -259,6 +262,18 @@ async fn main() -> anyhow::Result<()> {
                 }
                 TabItem::Thread => todo!(),
                 TabItem::Settings => todo!(),
+            }
+
+            if show_popup {
+                let block = Block::default().title("POPUP").borders(Borders::ALL);
+                let para = Paragraph::new(Text::from(vec![Spans::from(vec![Span::styled(
+                    "Hello, world!",
+                    Style::default().fg(Color::Red),
+                )])]))
+                .block(block);
+                let area = render_popup(69, 20, size);
+                f.render_widget(Clear, area);
+                f.render_widget(para, area);
             }
         })?;
 
@@ -336,15 +351,8 @@ async fn main() -> anyhow::Result<()> {
                                         let selected = state.reply_list_state.selected();
                                         if selected.is_some() {
                                             state.reply_list_state.select(selected.and_then(|i| {
-                                                let len = (*state
-                                                    .board_list
-                                                    .lock()
-                                                    .unwrap()
-                                                    .borrow_mut())
-                                                .get_mut()
-                                                .len();
                                                 if i <= 0 {
-                                                    Some(len - 1)
+                                                    Some(0)
                                                 } else {
                                                     Some(i - 1)
                                                 }
@@ -433,7 +441,7 @@ async fn main() -> anyhow::Result<()> {
                                                 .get_mut()
                                                 .len();
                                                 if i >= len - 1 {
-                                                    Some(0)
+                                                    Some(i)
                                                 } else {
                                                     Some(i + 1)
                                                 }
@@ -457,12 +465,15 @@ async fn main() -> anyhow::Result<()> {
                                     let mut state = state.clone();
                                     let reply_list = block_on(thread.load())
                                         .context("failed to load reply list")?;
-                                    state.set_reply_list(reply_list);
+
                                     state.focus_pane.set(Pane::Right);
+                                    state.set_reply_list(reply_list);
+                                    state.reply_list_state.select(Some(0));
                                 }
                                 TabItem::Thread => todo!(),
                                 TabItem::Settings => todo!(),
                             }
+                            state.focus_pane.set(Pane::Right);
                         } else {
                             // 右ペインでEnterを押すと、次のタブへ移動する
                             match &state.current_history {
@@ -623,7 +634,6 @@ fn render_board<'a>(state: &mut State) -> (List<'a>, List<'a>) {
 
     // stateからリプライ一覧を取得、ListItemへ変換
     // TODO: messageからURLなどを抜き出しリンク化
-    // TODO: nameを正規化
     let reply_items: Vec<ListItem> = state
         .reply_list
         .lock()
@@ -632,11 +642,28 @@ fn render_board<'a>(state: &mut State) -> (List<'a>, List<'a>) {
         .get_mut()
         .iter()
         .map(|reply| {
-            let text = Spans::from(vec![
-                Span::styled(reply.name.clone(), Style::default().fg(Color::White)),
-                Span::raw(reply.date.clone()),
-                Span::raw(reply.message.clone()),
-            ]);
+            let mut spans = vec![
+                Spans::from(vec![
+                    Span::styled(reply.reply_id.clone(), Style::default().fg(Color::White)),
+                    Span::styled(
+                        reply.name.clone(),
+                        Style::default()
+                            .fg(Color::White)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                ]),
+                Spans::from(vec![]),
+            ];
+
+            for message in reply.message.clone().split("<br>") {
+                spans.push(Spans::from(vec![Span::styled(
+                    message.to_string(),
+                    Style::default().fg(Color::White),
+                )]));
+            }
+
+            let text = Text::from(spans);
+
             ListItem::new(text)
         })
         .collect();
@@ -652,4 +679,30 @@ fn render_board<'a>(state: &mut State) -> (List<'a>, List<'a>) {
         );
 
     (thread_list, reply_list)
+}
+
+fn render_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_y) / 2),
+                Constraint::Percentage(percent_y),
+                Constraint::Percentage((100 - percent_y) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Percentage((100 - percent_x) / 2),
+                Constraint::Percentage(percent_x),
+                Constraint::Percentage((100 - percent_x) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
