@@ -22,9 +22,7 @@ impl<T: Clone> AtomicStatefulList<T> {
     }
 
     pub fn to_vec(&mut self) -> Vec<T> {
-        {
-            self.items.lock().unwrap().borrow_mut().to_vec().clone()
-        }
+        self.items.lock().unwrap().borrow_mut().to_vec()
     }
 
     pub fn enable_loop(&mut self) {
@@ -32,9 +30,7 @@ impl<T: Clone> AtomicStatefulList<T> {
     }
 
     pub fn set_items(&mut self, items: Vec<T>) {
-        {
-            *self.items.lock().unwrap().borrow_mut() = items;
-        }
+        *self.items.lock().unwrap().borrow_mut() = items;
     }
 
     pub fn next(&mut self) {

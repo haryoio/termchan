@@ -1,7 +1,6 @@
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    text::{Span, Spans},
     widgets::{Clear, Paragraph, Widget},
     Frame,
 };

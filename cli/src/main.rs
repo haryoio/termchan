@@ -3,15 +3,14 @@ extern crate cli;
 use cli::widgets::{
     atomic_stateful_list::AtomicStatefulList, popup::PopupState, stateful_list::StatefulList,
 };
-use std::{cell::Cell, fs::File, io, sync::mpsc, thread, time::Duration, vec};
-use tokio::time::Instant;
+use std::{cell::Cell, fs::File, io, thread, time::Duration, vec};
+use tokio::{sync::mpsc, time::Instant};
 
 use anyhow::Context;
 use crossterm::{
     event::{self, Event as CEvent, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
-use futures::executor::block_on;
 use pprof;
 use termchan::{
     configs::config::Config,
@@ -108,11 +107,11 @@ impl App {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let guard = pprof::ProfilerGuardBuilder::default()
-        .frequency(1000)
-        .blocklist(&["libc", "libgcc", "pthread"])
-        .build()
-        .unwrap();
+    // let guard = pprof::ProfilerGuardBuilder::default()
+    //     .frequency(1000)
+    //     .blocklist(&["libc", "libgcc", "pthread"])
+    //     .build()
+    //     .unwrap();
 
     enable_raw_mode().context("Failed to enable raw mode")?;
     let stdout = io::stdout();
@@ -150,9 +149,9 @@ async fn main() -> anyhow::Result<()> {
     let para = Paragraph::new(text).block(block).wrap(Wrap { trim: false });
     let mut popup_state = PopupState::new(para);
 
-    let (tx, rx) = mpsc::channel();
+    let (tx, mut rx) = mpsc::channel(1);
     let tick_rate = Duration::from_millis(200);
-    thread::spawn(move || {
+    tokio::spawn(async move {
         let mut last_tick = Instant::now();
         loop {
             let timeout = tick_rate
@@ -160,12 +159,12 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or_else(|| Duration::from_millis(0));
 
             if event::poll(timeout).expect("poll works") {
-                if let CEvent::Key(key) = event::read().expect("read works") {
-                    tx.send(Event::Input(key)).expect("send works");
+                if let CEvent::Key(key) = event::read().unwrap() {
+                    if let Ok(_) = tx.send(Event::Input(key)).await {}
                 }
             }
             if last_tick.elapsed() >= tick_rate {
-                if let Ok(_) = tx.send(Event::Tick) {
+                if let Ok(_) = tx.send(Event::Tick).await {
                     last_tick = Instant::now();
                 }
             }
@@ -177,7 +176,7 @@ async fn main() -> anyhow::Result<()> {
         {
             draw_ui(&mut terminal, app.clone(), &mut popup_state).context("Failed to draw UI")?;
         }
-        match rx.recv()? {
+        match rx.recv().await.unwrap() {
             Event::Input(event) => {
                 match event.code {
                     KeyCode::Char('q') => {
@@ -275,13 +274,10 @@ async fn main() -> anyhow::Result<()> {
                             TabItem::Board => match app.focus_pane.get() {
                                 Pane::Left => {
                                     let mut thread = app.current_thread().clone();
-                                    let reply_list =
-                                        thread.load().await.context("failed to load reply list")?;
-                                    {
-                                        app.focus_pane.set(Pane::Right);
-                                        app.thread.state.select(Some(0));
-                                        app.thread.set_items(reply_list);
-                                    }
+                                    let reply_list = thread.load().await.unwrap();
+                                    app.focus_pane.set(Pane::Right);
+                                    app.thread.state.select(Some(0));
+                                    app.thread.set_items(reply_list);
                                 }
                                 Pane::Right => {}
                             },
@@ -325,17 +321,17 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
-    match guard.report().build() {
-        Ok(report) => {
-            let file = File::create("flamegraph.svg").unwrap();
-            let mut options = pprof::flamegraph::Options::default();
-            options.image_width = Some(10000);
-            report.flamegraph_with_options(file, &mut options).unwrap();
+    // match guard.report().build() {
+    //     Ok(report) => {
+    //         let file = File::create("flamegraph.svg").unwrap();
+    //         let mut options = pprof::flamegraph::Options::default();
+    //         options.image_width = Some(10000);
+    //         report.flamegraph_with_options(file, &mut options).unwrap();
 
-            println!("report: {:?}", &report);
-        }
-        Err(_) => {}
-    };
+    //         println!("report: {:?}", &report);
+    //     }
+    //     Err(_) => {}
+    // };
     Ok(())
 }
 
@@ -366,22 +362,10 @@ where
                         )
                         .split(chunks[0]);
                     let (left, right) = render_bbsmenu(&mut app.clone());
-                    {
-                        let category_state = &app.clone().category.state;
-                        f.render_stateful_widget(
-                            left,
-                            board_chunks[0],
-                            &mut category_state.to_owned(),
-                        );
-                    }
-                    {
-                        let board_state = &app.clone().boards.state;
-                        f.render_stateful_widget(
-                            right,
-                            board_chunks[1],
-                            &mut board_state.to_owned(),
-                        );
-                    }
+                    let category_state = &app.clone().category.state;
+                    f.render_stateful_widget(left, board_chunks[0], &mut category_state.to_owned());
+                    let board_state = &app.clone().boards.state;
+                    f.render_stateful_widget(right, board_chunks[1], &mut board_state.to_owned());
                 }
                 TabItem::Board => {
                     let board_chunk = Layout::default()
@@ -392,22 +376,18 @@ where
                         .split(chunks[0]);
 
                     let (left, right) = render_board(&mut app.clone());
-                    {
-                        let thread_list_state = &app.clone().threads.state;
-                        f.render_stateful_widget(
-                            left,
-                            board_chunk[0],
-                            &mut thread_list_state.to_owned(),
-                        );
-                    }
-                    {
-                        let reply_list_state = &app.clone().thread.state;
-                        f.render_stateful_widget(
-                            right,
-                            board_chunk[1],
-                            &mut reply_list_state.to_owned(),
-                        );
-                    }
+                    let thread_list_state = &app.clone().threads.state;
+                    f.render_stateful_widget(
+                        left,
+                        board_chunk[0],
+                        &mut thread_list_state.to_owned(),
+                    );
+                    let reply_list_state = &app.clone().thread.state;
+                    f.render_stateful_widget(
+                        right,
+                        board_chunk[1],
+                        &mut reply_list_state.to_owned(),
+                    );
                 }
                 TabItem::Settings => todo!(),
             }
