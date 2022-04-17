@@ -12,6 +12,11 @@ cli:
 	@echo "$(PROJECT_NAME) try to run cli"
 	cargo run -p $@
 
+.PHONY: cli-watch
+cli-watch:
+	@echo "$(PROJECT_NAME) try to run cli-watch"
+	cargo watch -p $@
+
 .PHONY: test-cli-main
 test-cli-main:
 	@echo "$(PROJECT_NAME) try to run test-cli-main"

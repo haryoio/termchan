@@ -1,0 +1,14 @@
+
+[tasks.fmt]
+command = "cargo"
+args = ["fmt", "--all", "--", "--check"]
+
+[tasks.build]
+command = "cargo"
+args = ["build", "--release", "--all-targets"]
+
+[tasks.runcli]
+script = ["cargo run -p cli"]
+
+[tasks.watchcli]
+script = ["cargo watch -x 'run -p cli'"]

@@ -12,7 +12,7 @@ impl<T> StatefulList<T> {
         Self {
             state: ListState::default(),
             items,
-            is_loop: true,
+            is_loop: false,
         }
     }
 

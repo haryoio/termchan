@@ -17,12 +17,14 @@ impl<T: Clone> AtomicStatefulList<T> {
         Self {
             state: ListState::default(),
             items: Arc::new(Mutex::new(RefCell::new(items))),
-            is_loop: true,
+            is_loop: false,
         }
     }
 
     pub fn to_vec(&mut self) -> Vec<T> {
-        self.items.lock().unwrap().borrow_mut().to_vec()
+        {
+            self.items.lock().unwrap().borrow_mut().to_vec().clone()
+        }
     }
 
     pub fn enable_loop(&mut self) {
@@ -30,13 +32,16 @@ impl<T: Clone> AtomicStatefulList<T> {
     }
 
     pub fn set_items(&mut self, items: Vec<T>) {
-        *self.items.lock().unwrap().borrow_mut() = items;
+        {
+            *self.items.lock().unwrap().borrow_mut() = items;
+        }
     }
 
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {
-                if i >= self.items.lock().unwrap().borrow().len() - 1 {
+                let len = self.items.lock().unwrap().borrow().len();
+                if i > len {
                     if self.is_loop {
                         0
                     } else {
