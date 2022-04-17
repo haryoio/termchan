@@ -107,19 +107,20 @@ impl BbsMenu {
     pub async fn load(&self) -> anyhow::Result<Vec<BbsCategories>> {
         let url = self.url.clone();
         let mut html = Reciever::get(&url).await.context("page error")?.html();
-        Ok(normalize_bbsmenu(&mut html).context("failed to parse bbsmenu")?)
+        let normalized = normalize_bbsmenu(&mut html).context("failed to parse bbsmenu")?;
+        Ok(normalized)
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct BbsCategories {
     pub category: String,
-    pub list:     Vec<BoardUrl>,
+    pub list: Vec<BoardUrl>,
 }
 
 #[derive(Debug, Clone)]
 pub struct BoardUrl {
-    pub url:   String,
+    pub url: String,
     pub title: String,
 }
 

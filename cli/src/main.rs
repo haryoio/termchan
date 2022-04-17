@@ -1,14 +1,17 @@
 extern crate cli;
 
-use cli::widgets::{atomic_stateful_list::AtomicStatefulList, stateful_list::StatefulList};
-use std::{cell::Cell, io, sync::mpsc, thread, time::Duration, vec};
+use cli::widgets::{
+    atomic_stateful_list::AtomicStatefulList, popup::PopupState, stateful_list::StatefulList,
+};
+use std::{cell::Cell, fs::File, io, thread, time::Duration, vec};
+use tokio::{sync::mpsc, time::Instant};
 
 use anyhow::Context;
 use crossterm::{
     event::{self, Event as CEvent, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode},
 };
-use futures::executor::block_on;
+use pprof;
 use termchan::{
     configs::config::Config,
     controller::{
@@ -18,14 +21,13 @@ use termchan::{
         thread::Thread as TCThread,
     },
 };
-use tokio::time::Instant;
 use tui::{
-    backend::CrosstermBackend,
+    backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph},
-    Terminal,
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Widget, Wrap},
+    Frame, Terminal,
 };
 
 enum Event<I> {
@@ -39,11 +41,10 @@ enum InputMode {
     Editing,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum TabItem {
     Bbsmenu,
     Board,
-    Thread,
     Settings,
 }
 
@@ -106,6 +107,12 @@ impl App {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // let guard = pprof::ProfilerGuardBuilder::default()
+    //     .frequency(1000)
+    //     .blocklist(&["libc", "libgcc", "pthread"])
+    //     .build()
+    //     .unwrap();
+
     enable_raw_mode().context("Failed to enable raw mode")?;
     let stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
@@ -123,15 +130,28 @@ async fn main() -> anyhow::Result<()> {
     // BBSMENU ⊃ "BoardCategory" ⊃ BoardURL
     let mut app = App::new();
 
-    app.category.items = block_on(BbsMenu::new(bbsmenu_url.to_string()).load()).unwrap();
+    app.category.items = BbsMenu::new(bbsmenu_url.to_string())
+        .load()
+        .await
+        .context("Failed to load BBSMENU")?
+        .clone();
     app.boards.set_items(app.category.items[0].list.clone());
     app.threads.items = vec![TCThread::default()];
     app.thread.set_items(vec![Reply::default()]);
     app.history = vec![TabItem::Bbsmenu];
 
-    let (tx, rx) = mpsc::channel();
+    // TODO InputWidgetで置き換える
+    let block = Block::default().borders(Borders::ALL).title("Input");
+    let text = Text::from(Spans::from(Span::styled(
+        "input",
+        Style::default().fg(Color::Yellow),
+    )));
+    let para = Paragraph::new(text).block(block).wrap(Wrap { trim: false });
+    let mut popup_state = PopupState::new(para);
+
+    let (tx, mut rx) = mpsc::channel(1);
     let tick_rate = Duration::from_millis(200);
-    thread::spawn(move || {
+    tokio::spawn(async move {
         let mut last_tick = Instant::now();
         loop {
             let timeout = tick_rate
@@ -139,87 +159,24 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap_or_else(|| Duration::from_millis(0));
 
             if event::poll(timeout).expect("poll works") {
-                if let CEvent::Key(key) = event::read().expect("read works") {
-                    tx.send(Event::Input(key)).expect("send works");
+                if let CEvent::Key(key) = event::read().unwrap() {
+                    if let Ok(_) = tx.send(Event::Input(key)).await {}
                 }
             }
             if last_tick.elapsed() >= tick_rate {
-                if let Ok(_) = tx.send(Event::Tick) {
+                if let Ok(_) = tx.send(Event::Tick).await {
                     last_tick = Instant::now();
                 }
             }
         }
     });
 
-    let show_popup = false;
-
     loop {
-        let current_tab = app.history.last().unwrap();
-        terminal.draw(|f| {
-            let size = f.size();
-            // 一番上のレイアウトを定義
-            let chunks = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(10)].as_ref())
-                .split(size);
-
-            match current_tab {
-                TabItem::Bbsmenu => {
-                    let board_chunks = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints(
-                            [Constraint::Percentage(20), Constraint::Percentage(80)].as_ref(),
-                        )
-                        .split(chunks[0]);
-                    let (left, right) = render_bbsmenu(&mut app.clone());
-
-                    let category_state = &app.clone().category.state;
-                    f.render_stateful_widget(left, board_chunks[0], &mut category_state.to_owned());
-
-                    let board_state = &app.clone().boards.state;
-                    f.render_stateful_widget(right, board_chunks[1], &mut board_state.to_owned());
-                }
-                TabItem::Board => {
-                    let board_chunk = Layout::default()
-                        .direction(Direction::Horizontal)
-                        .constraints(
-                            [Constraint::Percentage(40), Constraint::Percentage(60)].as_ref(),
-                        )
-                        .split(chunks[0]);
-
-                    let (left, right) = render_board(&mut app.clone());
-
-                    let thread_list_state = &app.clone().threads.state;
-                    f.render_stateful_widget(
-                        left,
-                        board_chunk[0],
-                        &mut thread_list_state.to_owned(),
-                    );
-                    let reply_list_state = &app.clone().thread.state;
-                    f.render_stateful_widget(
-                        right,
-                        board_chunk[1],
-                        &mut reply_list_state.to_owned(),
-                    );
-                }
-                TabItem::Thread => todo!(),
-                TabItem::Settings => todo!(),
-            }
-
-            if show_popup {
-                let block = Block::default().title("POPUP").borders(Borders::ALL);
-                let para = Paragraph::new(Text::from(vec![Spans::from(vec![Span::styled(
-                    "Hello, world!",
-                    Style::default().fg(Color::Red),
-                )])]))
-                .block(block);
-                let area = render_popup(69, 20, size);
-                f.render_widget(Clear, area);
-                f.render_widget(para, area);
-            }
-        })?;
-
-        match rx.recv()? {
+        let current_tab = &app.history.last().unwrap();
+        {
+            draw_ui(&mut terminal, app.clone(), &mut popup_state).context("Failed to draw UI")?;
+        }
+        match rx.recv().await.unwrap() {
             Event::Input(event) => {
                 match event.code {
                     KeyCode::Char('q') => {
@@ -265,7 +222,6 @@ async fn main() -> anyhow::Result<()> {
                                     } // Down -> Thread -> Pane::Right
                                 }
                             }
-                            TabItem::Thread => todo!(),
                             TabItem::Settings => todo!(),
                         };
                     }
@@ -278,67 +234,55 @@ async fn main() -> anyhow::Result<()> {
                                         app.category.next();
                                         let selected_category = app.current_category();
                                         let mut app = app.clone();
-                                        app.boards.set_items(selected_category.list.clone());
-                                    } // Down -> Bbsmenu -> Pane::Left
+                                        {
+                                            app.boards.set_items(selected_category.list.clone());
+                                        }
+                                    }
                                     // BoardList
-                                    Pane::Right => {
-                                        app.boards.next();
-                                    } // Down -> Bbsmenu -> Pane::Left
+                                    Pane::Right => app.boards.next(),
                                 }
                             }
                             TabItem::Board => {
                                 match &app.focus_pane.get() {
                                     // ThreadList
-                                    Pane::Left => {
-                                        app.threads.next();
-                                    } // Down -> ThreadList -> Pane::Left
+                                    Pane::Left => app.threads.next(),
                                     // Thread
-                                    Pane::Right => {
-                                        app.thread.next();
-                                    } // Down -> Thread -> Pane::Left
+                                    Pane::Right => app.thread.next(),
                                 }
                             }
-                            TabItem::Thread => todo!(),
                             TabItem::Settings => todo!(),
                         };
                     }
 
                     KeyCode::Enter => {
-                        if app.focus_pane.get() == Pane::Left {
-                            match &current_tab {
-                                // 左ペインでEnterを押すと、右ペインへ移動する。
-                                TabItem::Bbsmenu => app.focus_pane.set(Pane::Right),
-                                TabItem::Board => {
+                        match &current_tab {
+                            // 板を選択,スレッド一覧画面へ移行
+                            TabItem::Bbsmenu => {
+                                match app.focus_pane.get() {
+                                    Pane::Left => app.focus_pane.set(Pane::Right),
+                                    Pane::Right => {
+                                        // 選択した板URLを取得
+                                        app.board_url = app.current_board().url.clone();
+                                        let new_threads =
+                                            Board::new(app.clone().board_url).load().await.unwrap();
+                                        app.threads.items = new_threads;
+                                        app.focus_pane.set(Pane::Left);
+                                        app.add_history(TabItem::Board);
+                                    }
+                                }
+                            }
+                            TabItem::Board => match app.focus_pane.get() {
+                                Pane::Left => {
                                     let mut thread = app.current_thread().clone();
-                                    let reply_list = block_on(thread.load())
-                                        .context("failed to load reply list")?;
-
+                                    let reply_list = thread.load().await.unwrap();
                                     app.focus_pane.set(Pane::Right);
                                     app.thread.state.select(Some(0));
                                     app.thread.set_items(reply_list);
                                 }
-                                TabItem::Thread => todo!(),
-                                TabItem::Settings => todo!(),
-                            }
-                            app.focus_pane.set(Pane::Right);
-                        } else {
-                            // 右ペインでEnterを押すと、次のタブへ移動する
-                            match &current_tab {
-                                // 板を選択,スレッド一覧画面へ移行
-                                TabItem::Bbsmenu => {
-                                    // 選択した板URLを取得
-                                    app.board_url = app.current_board().url.clone();
-                                    let new_threads =
-                                        block_on(Board::new(app.clone().board_url).load()).unwrap();
-                                    app.threads.items = new_threads;
-                                    app.focus_pane.set(Pane::Left);
-                                    app.add_history(TabItem::Board);
-                                }
-                                TabItem::Board => {}
-                                TabItem::Thread => todo!(),
-                                TabItem::Settings => todo!(),
-                            };
-                        }
+                                Pane::Right => {}
+                            },
+                            TabItem::Settings => todo!(),
+                        };
                     }
                     // resizemode
                     // ペインの比率を変更する
@@ -352,7 +296,6 @@ async fn main() -> anyhow::Result<()> {
                                 app.history.pop();
                                 app.focus_pane.set(Pane::Right);
                             }
-                            TabItem::Thread => todo!(),
                             TabItem::Settings => todo!(),
                         },
                         Pane::Right => {
@@ -365,6 +308,11 @@ async fn main() -> anyhow::Result<()> {
                             app.focus_pane.set(Pane::Right);
                         }
                     },
+                    KeyCode::Char('i') => {
+                        if current_tab == &&TabItem::Board && app.focus_pane.get() == Pane::Right {
+                            popup_state.toggle();
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -373,6 +321,80 @@ async fn main() -> anyhow::Result<()> {
         }
     }
 
+    // match guard.report().build() {
+    //     Ok(report) => {
+    //         let file = File::create("flamegraph.svg").unwrap();
+    //         let mut options = pprof::flamegraph::Options::default();
+    //         options.image_width = Some(10000);
+    //         report.flamegraph_with_options(file, &mut options).unwrap();
+
+    //         println!("report: {:?}", &report);
+    //     }
+    //     Err(_) => {}
+    // };
+    Ok(())
+}
+
+fn draw_ui<'a, B: Backend, T>(
+    terminal: &mut Terminal<B>,
+    app: App,
+    popup_state: &mut PopupState<T>,
+) -> anyhow::Result<()>
+where
+    T: Widget + Clone,
+{
+    terminal
+        .draw(|f| {
+            let current_tab = app.history.last().unwrap_or(&TabItem::Bbsmenu);
+            let size = f.size();
+            // 一番上のレイアウトを定義
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(10)].as_ref())
+                .split(size);
+
+            match current_tab {
+                TabItem::Bbsmenu => {
+                    let board_chunks = Layout::default()
+                        .direction(Direction::Horizontal)
+                        .constraints(
+                            [Constraint::Percentage(20), Constraint::Percentage(80)].as_ref(),
+                        )
+                        .split(chunks[0]);
+                    let (left, right) = render_bbsmenu(&mut app.clone());
+                    let category_state = &app.clone().category.state;
+                    f.render_stateful_widget(left, board_chunks[0], &mut category_state.to_owned());
+                    let board_state = &app.clone().boards.state;
+                    f.render_stateful_widget(right, board_chunks[1], &mut board_state.to_owned());
+                }
+                TabItem::Board => {
+                    let board_chunk = Layout::default()
+                        .direction(Direction::Horizontal)
+                        .constraints(
+                            [Constraint::Percentage(40), Constraint::Percentage(60)].as_ref(),
+                        )
+                        .split(chunks[0]);
+
+                    let (left, right) = render_board(&mut app.clone());
+                    let thread_list_state = &app.clone().threads.state;
+                    f.render_stateful_widget(
+                        left,
+                        board_chunk[0],
+                        &mut thread_list_state.to_owned(),
+                    );
+                    let reply_list_state = &app.clone().thread.state;
+                    f.render_stateful_widget(
+                        right,
+                        board_chunk[1],
+                        &mut reply_list_state.to_owned(),
+                    );
+                }
+                TabItem::Settings => todo!(),
+            }
+
+            popup_state.render(f);
+        })
+        .context("failed to draw ui")?;
     Ok(())
 }
 
@@ -534,28 +556,32 @@ fn render_board<'a>(app: &mut App) -> (List<'a>, List<'a>) {
     (thread_list, reply_list)
 }
 
-fn render_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Percentage(percent_y),
-                Constraint::Percentage((100 - percent_y) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
+struct PostForm {
+    mail: Input,
+    name: Input,
+    message: Input,
+}
 
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Percentage((100 - percent_x) / 2),
-                Constraint::Percentage(percent_x),
-                Constraint::Percentage((100 - percent_x) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
+struct Input {
+    text: String,
+}
+
+impl Input {
+    pub fn new() -> Self {
+        Self {
+            text: String::new(),
+        }
+    }
+    pub fn enter(&mut self, ch: char) {
+        self.text.push(ch);
+    }
+    pub fn backspace(&mut self) {
+        self.text.pop();
+    }
+    pub fn clear(&mut self) {
+        self.text.clear();
+    }
+    pub fn char(&mut self, c: char) {
+        self.text.push(c);
+    }
 }

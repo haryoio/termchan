@@ -3,6 +3,7 @@ name = "cli"
 version = "0.1.0"
 edition = "2021"
 
+
 [dependencies]
 crossterm = { version = "0.23.2", features = ["serde"] }
 tui = { version = "0.17.0", features = ["serde"] }
@@ -13,3 +14,4 @@ anyhow = "1.0.56"
 tokio = "1.17.0"
 unicode-width = "0.1.9"
 futures = "0.3.21"
+pprof = { version = "0.7", features = ["flamegraph"] }
