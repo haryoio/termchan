@@ -1,8 +1,10 @@
 extern crate cli;
 
 use cli::widgets::{
-    atomic_stateful_list::AtomicStatefulList, popup::PopupState, stateful_list::StatefulList,
+    atomic_stateful_list::AtomicStatefulList, popup::PopupState, popup_input::PopupInput,
+    stateful_list::StatefulList,
 };
+use futures::executor::block_on;
 use std::{cell::Cell, fs::File, io, thread, time::Duration, vec};
 use tokio::{sync::mpsc, time::Instant};
 
@@ -33,12 +35,13 @@ use tui::{
 enum Event<I> {
     Input(I),
     Tick,
-    Init,
 }
 
+#[derive(Debug, Clone)]
 enum InputMode {
     Normal,
     Editing,
+    Input,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,6 +69,7 @@ struct App {
     pub history: Vec<TabItem>,
     pub board_url: String,
     pub focus_pane: Cell<Pane>,
+    pub input_mode: InputMode,
 }
 
 impl App {
@@ -79,6 +83,7 @@ impl App {
             history: Vec::new(),
             board_url: String::new(),
             focus_pane: Cell::new(Pane::Left),
+            input_mode: InputMode::Normal,
         }
     }
     pub fn current_category(&self) -> &BbsCategories {
@@ -126,8 +131,6 @@ async fn main() -> anyhow::Result<()> {
         None => panic!("BBSMENU URLを設定してください。"),
     };
 
-    // BBSMENUを取得
-    // BBSMENU ⊃ "BoardCategory" ⊃ BoardURL
     let mut app = App::new();
 
     app.category.items = BbsMenu::new(bbsmenu_url.to_string())
@@ -141,13 +144,13 @@ async fn main() -> anyhow::Result<()> {
     app.history = vec![TabItem::Bbsmenu];
 
     // TODO InputWidgetで置き換える
-    let block = Block::default().borders(Borders::ALL).title("Input");
-    let text = Text::from(Spans::from(Span::styled(
-        "input",
-        Style::default().fg(Color::Yellow),
-    )));
-    let para = Paragraph::new(text).block(block).wrap(Wrap { trim: false });
-    let mut popup_state = PopupState::new(para);
+    // let block = Block::default().borders(Borders::ALL).title("Input");
+    // let text = Text::from(Spans::from(Span::styled(
+    //     "input",
+    //     Style::default().fg(Color::Yellow),
+    // )));
+    // let para = Paragraph::new(text).block(block).wrap(Wrap { trim: false });
+    let mut reply_form_state = PopupInput::new();
 
     let (tx, mut rx) = mpsc::channel(1);
     let tick_rate = Duration::from_millis(200);
@@ -174,150 +177,217 @@ async fn main() -> anyhow::Result<()> {
     loop {
         let current_tab = &app.history.last().unwrap();
         {
-            draw_ui(&mut terminal, app.clone(), &mut popup_state).context("Failed to draw UI")?;
+            draw_ui(&mut terminal, app.clone(), &mut reply_form_state)
+                .context("Failed to draw UI")?;
         }
         match rx.recv().await.unwrap() {
             Event::Input(event) => {
-                match event.code {
-                    KeyCode::Char('q') => {
-                        disable_raw_mode()?;
-                        terminal.show_cursor()?;
-                        break;
-                    }
-                    KeyCode::Up => {
-                        match &current_tab {
-                            TabItem::Bbsmenu => {
-                                match &app.focus_pane.get() {
-                                    // Category
-                                    Pane::Left => {
-                                        app.category.previous();
-                                        let selected_category = app.current_category();
-                                        let mut app = app.clone();
-                                        app.boards.set_items(selected_category.list.clone());
-                                    } // Down -> Bbsmenu -> Pane::Left
-                                    // BoardList
-                                    Pane::Right => {
-                                        app.boards.previous();
-                                    }
+                {
+                    println!("{:?}", event);
+                    match app.input_mode {
+                        InputMode::Normal => {
+                            match event.code {
+                                KeyCode::Char('q') => {
+                                    disable_raw_mode()?;
+                                    terminal.show_cursor()?;
+                                    break;
                                 }
-                            }
-                            TabItem::Board => {
-                                match &app.focus_pane.get() {
-                                    // ThreadList
-                                    Pane::Left => {
-                                        app.threads.previous();
-                                    } // Down -> ThreadList -> Pane::Left
-                                    // Thread
-                                    Pane::Right => {
-                                        let selected = app.thread.state.selected();
-                                        if selected.is_some() {
-                                            app.thread.state.select(selected.and_then(|i| {
-                                                if i <= 0 {
-                                                    Some(0)
-                                                } else {
-                                                    Some(i - 1)
+                                KeyCode::Up => {
+                                    match &current_tab {
+                                        TabItem::Bbsmenu => {
+                                            match &app.focus_pane.get() {
+                                                // Category
+                                                Pane::Left => {
+                                                    app.category.previous();
+                                                    let selected_category = app.current_category();
+                                                    let mut app = app.clone();
+                                                    app.boards
+                                                        .set_items(selected_category.list.clone());
+                                                } // Down -> Bbsmenu -> Pane::Left
+                                                // BoardList
+                                                Pane::Right => {
+                                                    app.boards.previous();
                                                 }
-                                            }));
+                                            }
                                         }
-                                    } // Down -> Thread -> Pane::Right
-                                }
-                            }
-                            TabItem::Settings => todo!(),
-                        };
-                    }
-                    KeyCode::Down => {
-                        match &current_tab {
-                            TabItem::Bbsmenu => {
-                                match &app.focus_pane.get() {
-                                    // Category
-                                    Pane::Left => {
-                                        app.category.next();
-                                        let selected_category = app.current_category();
-                                        let mut app = app.clone();
-                                        {
-                                            app.boards.set_items(selected_category.list.clone());
+                                        TabItem::Board => {
+                                            match &app.focus_pane.get() {
+                                                // ThreadList
+                                                Pane::Left => {
+                                                    app.threads.previous();
+                                                } // Down -> ThreadList -> Pane::Left
+                                                // Thread
+                                                Pane::Right => {
+                                                    let selected = app.thread.state.selected();
+                                                    if selected.is_some() {
+                                                        app.thread.state.select(selected.and_then(
+                                                            |i| {
+                                                                if i <= 0 {
+                                                                    Some(0)
+                                                                } else {
+                                                                    Some(i - 1)
+                                                                }
+                                                            },
+                                                        ));
+                                                    }
+                                                } // Down -> Thread -> Pane::Right
+                                            }
                                         }
-                                    }
-                                    // BoardList
-                                    Pane::Right => app.boards.next(),
+                                        TabItem::Settings => todo!(),
+                                    };
                                 }
-                            }
-                            TabItem::Board => {
-                                match &app.focus_pane.get() {
-                                    // ThreadList
-                                    Pane::Left => app.threads.next(),
-                                    // Thread
-                                    Pane::Right => app.thread.next(),
+                                KeyCode::Down => {
+                                    match &current_tab {
+                                        TabItem::Bbsmenu => {
+                                            match &app.focus_pane.get() {
+                                                // Category
+                                                Pane::Left => {
+                                                    app.category.next();
+                                                    let selected_category = app.current_category();
+                                                    let mut app = app.clone();
+                                                    {
+                                                        app.boards.set_items(
+                                                            selected_category.list.clone(),
+                                                        );
+                                                    }
+                                                }
+                                                // BoardList
+                                                Pane::Right => app.boards.next(),
+                                            }
+                                        }
+                                        TabItem::Board => {
+                                            match &app.focus_pane.get() {
+                                                // ThreadList
+                                                Pane::Left => app.threads.next(),
+                                                // Thread
+                                                Pane::Right => app.thread.next(),
+                                            }
+                                        }
+                                        TabItem::Settings => todo!(),
+                                    };
                                 }
-                            }
-                            TabItem::Settings => todo!(),
-                        };
-                    }
 
-                    KeyCode::Enter => {
-                        match &current_tab {
-                            // 板を選択,スレッド一覧画面へ移行
-                            TabItem::Bbsmenu => {
-                                match app.focus_pane.get() {
-                                    Pane::Left => app.focus_pane.set(Pane::Right),
+                                KeyCode::Enter => {
+                                    match &current_tab {
+                                        // 板を選択,スレッド一覧画面へ移行
+                                        TabItem::Bbsmenu => {
+                                            match app.focus_pane.get() {
+                                                Pane::Left => app.focus_pane.set(Pane::Right),
+                                                Pane::Right => {
+                                                    // 選択した板URLを取得
+                                                    app.board_url = app.current_board().url.clone();
+                                                    let new_threads =
+                                                        Board::new(app.clone().board_url)
+                                                            .load()
+                                                            .await
+                                                            .unwrap();
+                                                    app.threads.items = new_threads;
+                                                    app.focus_pane.set(Pane::Left);
+                                                    app.add_history(TabItem::Board);
+                                                }
+                                            }
+                                        }
+                                        TabItem::Board => match app.focus_pane.get() {
+                                            Pane::Left => {
+                                                let mut thread = app.current_thread().clone();
+                                                let reply_list = thread.load().await.unwrap();
+                                                app.focus_pane.set(Pane::Right);
+                                                app.thread.state.select(Some(0));
+                                                app.thread.set_items(reply_list);
+                                            }
+                                            Pane::Right => {}
+                                        },
+                                        TabItem::Settings => todo!(),
+                                    };
+                                }
+                                // resizemode
+                                // ペインの比率を変更する
+                                KeyCode::Char('R') => {}
+                                KeyCode::Left => match app.focus_pane.get() {
+                                    Pane::Left => match current_tab {
+                                        TabItem::Bbsmenu => {
+                                            app.focus_pane.set(Pane::Right);
+                                        }
+                                        TabItem::Board => {
+                                            app.history.pop();
+                                            app.focus_pane.set(Pane::Right);
+                                        }
+                                        TabItem::Settings => todo!(),
+                                    },
                                     Pane::Right => {
-                                        // 選択した板URLを取得
-                                        app.board_url = app.current_board().url.clone();
-                                        let new_threads =
-                                            Board::new(app.clone().board_url).load().await.unwrap();
-                                        app.threads.items = new_threads;
                                         app.focus_pane.set(Pane::Left);
-                                        app.add_history(TabItem::Board);
+                                    }
+                                },
+                                KeyCode::Right => match app.focus_pane.get() {
+                                    Pane::Left => app.focus_pane.set(Pane::Left),
+                                    Pane::Right => {
+                                        app.focus_pane.set(Pane::Right);
+                                    }
+                                },
+                                KeyCode::Char('i') => {
+                                    if current_tab == &&TabItem::Board
+                                        && app.focus_pane.get() == Pane::Right
+                                    {
+                                        reply_form_state.toggle();
+                                        match app.input_mode {
+                                            InputMode::Normal => {
+                                                app.input_mode = InputMode::Input;
+                                            }
+                                            InputMode::Input => {
+                                                app.input_mode = InputMode::Normal;
+                                            }
+                                            InputMode::Editing => {}
+                                        }
                                     }
                                 }
+                                _ => {}
                             }
-                            TabItem::Board => match app.focus_pane.get() {
-                                Pane::Left => {
-                                    let mut thread = app.current_thread().clone();
-                                    let reply_list = thread.load().await.unwrap();
-                                    app.focus_pane.set(Pane::Right);
-                                    app.thread.state.select(Some(0));
-                                    app.thread.set_items(reply_list);
-                                }
-                                Pane::Right => {}
-                            },
-                            TabItem::Settings => todo!(),
-                        };
-                    }
-                    // resizemode
-                    // ペインの比率を変更する
-                    KeyCode::Char('R') => {}
-                    KeyCode::Left => match app.focus_pane.get() {
-                        Pane::Left => match current_tab {
-                            TabItem::Bbsmenu => {
-                                app.focus_pane.set(Pane::Right);
+                        }
+                        InputMode::Editing => match event.code {
+                            KeyCode::Esc => {
+                                app.input_mode = InputMode::Input;
                             }
-                            TabItem::Board => {
-                                app.history.pop();
-                                app.focus_pane.set(Pane::Right);
+                            KeyCode::Char(c) => {
+                                block_on(reply_form_state.char(&c.to_string()));
                             }
-                            TabItem::Settings => todo!(),
+                            KeyCode::Backspace => {
+                                block_on(reply_form_state.backspace());
+                            }
+                            KeyCode::Enter => {
+                                block_on(reply_form_state.enter());
+                            }
+                            KeyCode::Left => {
+                                block_on(reply_form_state.left());
+                            }
+                            KeyCode::Right => {
+                                block_on(reply_form_state.right());
+                            }
+                            KeyCode::Up => {
+                                block_on(reply_form_state.up());
+                            }
+                            KeyCode::Down => {
+                                block_on(reply_form_state.down());
+                            }
+                            _ => {}
                         },
-                        Pane::Right => {
-                            app.focus_pane.set(Pane::Left);
-                        }
-                    },
-                    KeyCode::Right => match app.focus_pane.get() {
-                        Pane::Left => app.focus_pane.set(Pane::Left),
-                        Pane::Right => {
-                            app.focus_pane.set(Pane::Right);
-                        }
-                    },
-                    KeyCode::Char('i') => {
-                        if current_tab == &&TabItem::Board && app.focus_pane.get() == Pane::Right {
-                            popup_state.toggle();
-                        }
+                        InputMode::Input => match event.code {
+                            KeyCode::Tab => {
+                                reply_form_state.next_form().await;
+                            }
+                            KeyCode::Enter => {
+                                app.input_mode = InputMode::Editing;
+                            }
+                            KeyCode::Esc => {
+                                app.input_mode = InputMode::Normal;
+                                reply_form_state.toggle();
+                            }
+                            _ => {}
+                        },
                     }
-                    _ => {}
                 }
             }
+
             Event::Tick => {}
-            Event::Init => {}
         }
     }
 
@@ -335,14 +405,11 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn draw_ui<'a, B: Backend, T>(
+fn draw_ui<'a, B: Backend>(
     terminal: &mut Terminal<B>,
     app: App,
-    popup_state: &mut PopupState<T>,
-) -> anyhow::Result<()>
-where
-    T: Widget + Clone,
-{
+    reply_form_state: &mut PopupInput,
+) -> anyhow::Result<()> {
     terminal
         .draw(|f| {
             let current_tab = app.history.last().unwrap_or(&TabItem::Bbsmenu);
@@ -392,7 +459,21 @@ where
                 TabItem::Settings => todo!(),
             }
 
-            popup_state.render(f);
+            block_on(reply_form_state.render(f));
+            match app.input_mode {
+                InputMode::Normal => {}
+                InputMode::Editing => {
+                    let chunk = reply_form_state.current_chunk();
+                    let chunk = match chunk {
+                        Some(chunk) => chunk,
+                        None => todo!(),
+                    };
+                    let width = block_on(reply_form_state.width()) + 1;
+                    let height = block_on(reply_form_state.height()) + 1;
+                    f.set_cursor(chunk.x + width as u16, chunk.y + height as u16);
+                }
+                InputMode::Input => {}
+            }
         })
         .context("failed to draw ui")?;
     Ok(())
@@ -556,32 +637,11 @@ fn render_board<'a>(app: &mut App) -> (List<'a>, List<'a>) {
     (thread_list, reply_list)
 }
 
-struct PostForm {
-    mail: Input,
-    name: Input,
-    message: Input,
-}
-
-struct Input {
-    text: String,
-}
-
-impl Input {
-    pub fn new() -> Self {
-        Self {
-            text: String::new(),
-        }
-    }
-    pub fn enter(&mut self, ch: char) {
-        self.text.push(ch);
-    }
-    pub fn backspace(&mut self) {
-        self.text.pop();
-    }
-    pub fn clear(&mut self) {
-        self.text.clear();
-    }
-    pub fn char(&mut self, c: char) {
-        self.text.push(c);
-    }
-}
+// POPUPのチャンクを取得する
+// チャンクを更に分割する。
+// それぞれのチャンクに対してInputをレンダリングする。
+// struct PostForm {
+//     mail: Input,
+//     name: Input,
+//     message: Input,
+// }
