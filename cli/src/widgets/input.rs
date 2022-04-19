@@ -1,4 +1,17 @@
 use std::cell::Cell;
+
+pub enum InputActionType {
+    CursorRight,
+    CursorLeft,
+    CursorUp,
+    CursorDown,
+    CursorUpMulti(usize),
+    CursorDownMulti(usize),
+    Return,
+    Char(char),
+    Clear,
+}
+
 #[derive(Debug)]
 pub struct Input {
     pub texts: Vec<String>,
@@ -17,6 +30,21 @@ impl Input {
 
     pub fn text(&self) -> String {
         self.texts.clone().join("\n").to_string()
+    }
+
+    pub fn multiline(self, multiline: bool) -> Self {
+        self.multiline.set(multiline);
+        self
+    }
+
+    pub fn set_guard(&mut self) {
+        let x = self.texts[self.cursor.y].chars().count();
+        let y = self.texts.len();
+        self.cursor.set_guard(x, y);
+    }
+
+    pub fn current_line(&self) -> &str {
+        &self.texts[self.cursor.y]
     }
 
     pub fn backspace(&mut self) {
@@ -44,30 +72,14 @@ impl Input {
         }
     }
 
-    pub fn multiline(self, multiline: bool) -> Self {
-        self.multiline.set(multiline);
-        self
-    }
-
-    pub fn set_guard(&mut self) {
-        let x = self.texts[self.cursor.y].chars().count();
-        let y = self.texts.len();
-        self.cursor.set_guard(x, y);
-    }
-
-    pub fn current_line(&self) -> &str {
-        &self.texts[self.cursor.y]
-    }
-
     pub fn clear(&mut self) {
         self.texts.clear();
         self.cursor.set_cursor(0, 0);
     }
 
-    pub fn char(&mut self, c: &str) {
-        self.texts[self.cursor.y].insert_str(self.cursor.x, c);
-        self.cursor
-            .set_cursor(self.cursor.x + c.chars().count(), self.cursor.y);
+    pub fn char(&mut self, c: char) {
+        self.texts[self.cursor.y].insert(self.cursor.x, c);
+        self.cursor.set_cursor(self.cursor.x + 1, self.cursor.y);
         self.cursor
             .set_guard(self.texts[self.cursor.y].chars().count(), self.texts.len());
     }
@@ -90,6 +102,7 @@ impl Input {
             }
         }
     }
+
     pub fn up(&mut self) {
         if self.multiline.get() {
             if self.cursor.y > 0 {
