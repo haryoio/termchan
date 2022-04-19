@@ -1,18 +1,15 @@
-use crate::{
-    state::{InputMode, Pane, TabItem},
-    widgets::popup_input::PopupInput,
-};
+use crate::state::{InputMode, Pane, TabItem};
 use futures::executor::block_on;
-use std::{borrow::BorrowMut, io::Write, vec};
+use std::{io::Write, vec};
 
 use crate::state::State;
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Widget, Wrap},
-    Frame, Terminal,
+    widgets::{Block, BorderType, Borders, List, ListItem},
+    Frame,
 };
 
 pub fn draw(frame: &mut Frame<CrosstermBackend<impl Write>>, state: &mut State, chunk: Rect) {

@@ -12,7 +12,7 @@ use tui::{
 use super::input::Input;
 
 #[derive(Clone, Debug)]
-pub struct PopupInput {
+pub struct ReplyForm {
     show: bool,
     forms: Arc<Mutex<[Input; 3]>>,
     focus: usize,
@@ -22,7 +22,7 @@ pub struct PopupInput {
 /// let popup_state = PopupState::new();
 /// popup_state.show(f,block);
 /// popup_state.hide();
-impl PopupInput {
+impl ReplyForm {
     pub fn new() -> Self {
         let name_input = Input::new();
         let mail_input = Input::new();
@@ -38,7 +38,7 @@ impl PopupInput {
 
     pub async fn render<B: Backend>(&mut self, f: &mut Frame<'_, B>) {
         if self.show {
-            let area = render_popup(70, 50, f.size());
+            let area = layout_popup(70, 50, f.size());
 
             let block = Block::default()
                 .borders(Borders::ALL)
@@ -110,7 +110,7 @@ impl PopupInput {
         self.forms.lock().await[self.focus].backspace();
     }
 
-    pub async fn char(&mut self, c: &str) {
+    pub async fn char(&mut self, c: char) {
         self.forms.lock().await[self.focus].char(c);
     }
 
@@ -147,7 +147,7 @@ impl PopupInput {
     }
 }
 
-fn render_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+fn layout_popup(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(

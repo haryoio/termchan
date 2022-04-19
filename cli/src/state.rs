@@ -1,5 +1,6 @@
 use std::cell::Cell;
 
+use futures::io::Repeat;
 use termchan::controller::{
     menu::{BbsCategories, BoardUrl},
     reply::Reply,
@@ -7,7 +8,7 @@ use termchan::controller::{
 };
 
 use crate::widgets::{
-    atomic_stateful_list::AtomicStatefulList, popup_input::PopupInput, stateful_list::StatefulList,
+    atomic_stateful_list::AtomicStatefulList, reply_form::ReplyForm, stateful_list::StatefulList,
 };
 
 pub enum EventType<I> {
@@ -48,7 +49,7 @@ pub struct State {
     pub board_url: String,
     pub focus_pane: Cell<Pane>,
     pub input_mode: InputMode,
-    pub reply_form: PopupInput,
+    pub reply_form: ReplyForm,
 }
 
 impl State {
@@ -63,7 +64,7 @@ impl State {
             board_url: String::new(),
             focus_pane: Cell::new(Pane::Left),
             input_mode: InputMode::Normal,
-            reply_form: PopupInput::new(),
+            reply_form: ReplyForm::new(),
         }
     }
     pub fn current_category(&self) -> &BbsCategories {

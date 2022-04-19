@@ -50,12 +50,12 @@ impl Display for ReadMode {
 
 #[derive(Debug, Clone)]
 pub struct Thread {
-    server_name: String,
-    board_key: String,
-    id: String,
-    title: String,
-    count: Cell<usize>,
-    list: Vec<Reply>,
+    pub server_name: String,
+    pub board_key: String,
+    pub id: String,
+    pub title: String,
+    pub count: Cell<usize>,
+    pub list: Vec<Reply>,
     is_first_fetch: Cell<bool>,
     is_stopdone: Cell<bool>,
     read_mode: ReadMode,
@@ -76,33 +76,13 @@ impl Thread {
         }
     }
 
-    pub fn server_name(&self) -> &str {
-        &self.server_name
-    }
-
-    pub fn board_key(&self) -> &str {
-        &self.board_key
-    }
-
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn title(&self) -> &str {
-        &self.title
-    }
-
-    pub fn count(&self) -> usize {
-        self.count.get()
-    }
-
     pub fn created_at(&self) -> DateTime<Tz> {
         let timestamp = self.id.parse::<i64>().unwrap();
         Tokyo.timestamp(timestamp, 0)
     }
 
     pub fn ikioi(&self) -> usize {
-        let rep_count = self.count();
+        let rep_count = self.count.get();
         let now: usize = Tokyo.timestamp(Utc::now().timestamp(), 0).timestamp() as usize;
         let first_rep: usize = self.created_at().timestamp() as usize;
         rep_count / ((now - first_rep) / 86400)
