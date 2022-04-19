@@ -11,7 +11,7 @@ use tui::{
 
 use super::input::Input;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PopupInput {
     show: bool,
     forms: Arc<Mutex<[Input; 3]>>,

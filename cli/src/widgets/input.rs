@@ -1,5 +1,5 @@
 use std::cell::Cell;
-
+#[derive(Debug)]
 pub struct Input {
     pub texts: Vec<String>,
     pub cursor: Cursor,
