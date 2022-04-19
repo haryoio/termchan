@@ -1,16 +1,10 @@
-use std::{
-    borrow::BorrowMut,
-    cell::{Cell, RefCell},
-    fmt::Display,
-};
+use std::{cell::Cell, fmt::Display};
 
 use anyhow::Context;
+use chrono::{DateTime, TimeZone, Utc};
+use chrono_tz::{Asia::Tokyo, Tz};
 
-use crate::{
-    controller::reply::{Replies, Reply},
-    patterns,
-    receiver::Reciever,
-};
+use crate::{controller::reply::Reply, patterns, receiver::Reciever};
 
 fn normalize_thread(html: &str) -> anyhow::Result<Vec<Reply>> {
     let mut replies = Vec::new();
@@ -58,10 +52,10 @@ impl Display for ReadMode {
 pub struct Thread {
     server_name: String,
     board_key: String,
-    pub id: String,
-    pub title: String,
-    pub count: Cell<usize>,
-    pub list: Vec<Reply>,
+    id: String,
+    title: String,
+    count: Cell<usize>,
+    list: Vec<Reply>,
     is_first_fetch: Cell<bool>,
     is_stopdone: Cell<bool>,
     read_mode: ReadMode,
@@ -82,25 +76,41 @@ impl Thread {
         }
     }
 
-    pub fn get_server_name(&self) -> &str {
+    pub fn server_name(&self) -> &str {
         &self.server_name
     }
 
-    pub fn get_board_key(&self) -> &str {
+    pub fn board_key(&self) -> &str {
         &self.board_key
     }
 
-    pub fn get_id(&self) -> &str {
+    pub fn id(&self) -> &str {
         &self.id
     }
 
-    pub fn get_title(&self) -> &str {
+    pub fn title(&self) -> &str {
         &self.title
+    }
+
+    pub fn count(&self) -> usize {
+        self.count.get()
+    }
+
+    pub fn created_at(&self) -> DateTime<Tz> {
+        let timestamp = self.id.parse::<i64>().unwrap();
+        Tokyo.timestamp(timestamp, 0)
+    }
+
+    pub fn ikioi(&self) -> usize {
+        let rep_count = self.count();
+        let now: usize = Tokyo.timestamp(Utc::now().timestamp(), 0).timestamp() as usize;
+        let first_rep: usize = self.created_at().timestamp() as usize;
+        rep_count / ((now - first_rep) / 86400)
     }
 
     // スレッドのURLを取得
     // https://<server_name>/test/read.cgi/<board_key>/<thread_id>/
-    pub fn get_url(&self) -> String {
+    pub fn url(&self) -> String {
         format!(
             "https://{}/test/read.{}/{}/{}/",
             self.server_name, self.read_mode, self.board_key, self.id
@@ -109,7 +119,7 @@ impl Thread {
 
     // 最新レスのURLを取得
     // https://<server_name>/test/read.cgi/<board_key>/<thread_id>/<latest_res>-n
-    fn get_latest_url(&self) -> String {
+    fn latest_url(&self) -> String {
         format!(
             "https://{}/test/read.{}/{}/{}/{}-n/",
             self.server_name,
@@ -126,9 +136,9 @@ impl Thread {
 
     pub async fn load(&mut self) -> anyhow::Result<Vec<Reply>> {
         let url = if self.is_first_fetch.get() {
-            self.get_url()
+            self.url()
         } else {
-            self.get_latest_url()
+            self.latest_url()
         };
 
         // dat落ちならリロードしない
