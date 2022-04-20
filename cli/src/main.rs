@@ -293,9 +293,10 @@ async fn main() -> Result<()> {
                             }
                             KeyCode::Enter => {
                                 if state.reply_form.focused() == 3 {
-                                    let sender =
-                                        Sender::new(&state.current_thread().url()).unwrap();
+                                    let thread = state.current_thread();
+                                    let sender = Sender::new(&thread);
 
+                                    let mut state = state.clone();
                                     let message = state.reply_form.message().await;
                                     let name = state.reply_form.name().await;
                                     let mail = state.reply_form.mail().await;
