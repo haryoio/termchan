@@ -82,15 +82,7 @@ fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
                 return Err(anyhow::anyhow!("failed to parse categories"));
             }
         }
-    } // for l in lines
-
-    // for c in &categories {
-    //     println!("{}", c.category);
-    //     for l in &c.list {
-    //         println!("\t{} : {}", l.url, l.title);
-    //     }
-    // }
-
+    }
     Ok(categories)
 }
 

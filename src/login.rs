@@ -1,27 +1,21 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use cookie_store::{Cookie, Error};
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
 use reqwest_cookie_store::CookieStoreMutex;
 
-use crate::{configs::config::Config, cookie::CookieStore, encoder};
+use crate::{configs::config::Config, cookie::CookieStore, encoder, error::TermchanError};
 
 pub struct Login {
     url: String,
 }
 
 impl Login {
-    pub async fn do_login() -> anyhow::Result<()> {
-        let config = Config::load().unwrap();
-        let config = match config.login {
-            Some(config) => config,
-            None => return Ok(()),
-        };
-
-        let url = match config.url {
-            Some(url) => url,
-            None => return Ok(()),
-        };
+    pub async fn do_login() -> Result<Arc<CookieStoreMutex>, TermchanError> {
+        let config = Config::load().context("failed to load config")?;
+        let config = config.login.as_ref().context("login is not set")?;
+        let url = config.url.as_ref().context("url is not set")?;
         // ログイン用のホスト名を取得
         let host = url::Url::parse(&url)
             .context("url parse error")?
@@ -41,7 +35,7 @@ impl Login {
             .context("failed to create client")?;
 
         let resp = client
-            .get(&url)
+            .get(url)
             .header(HOST, host.to_string())
             .header(COOKIE, &cookie)
             .send()
@@ -50,13 +44,11 @@ impl Login {
 
         // セッションが有効ならログイン処理をスキップ
         if resp.text().await.unwrap().contains("ログインしています") {
-            return Ok(());
+            return Ok(cookie_store);
         }
 
-        let (email, password) = match (config.email, config.password) {
-            (Some(email), Some(password)) => (email, password),
-            _ => return Ok(()),
-        };
+        let email = config.email.as_ref().context("email is not set")?;
+        let password = config.password.as_ref().context("password is not set")?;
         // ログイン画面のフォームデータを生成
         let form = vec![
             ("em", email.as_str()),
@@ -70,7 +62,7 @@ impl Login {
         let resp = client
             .post(&post_url)
             .header(HOST, host.to_string())
-            .header(REFERER, &url)
+            .header(REFERER, url)
             .header(CONTENT_TYPE, "application/x-www-form-urlencoded")
             .body(form_data)
             .send()
@@ -82,22 +74,18 @@ impl Login {
 
         let html = &resp.text().await.context("failed to get html")?;
         if html.contains("ログインできません") {
-            return Err(anyhow::anyhow!(
-                "ERROR: login failed (email or password is wrong)"
-            ));
+            return Err(TermchanError::LoginError("ログインできません".to_string()));
         } else if html.contains("ログインしました") {
-            println!("INFO: login success");
-            Ok(())
+            Ok(cookie_store)
         } else if html.contains("ログインしています") {
-            println!("INFO: already logged in");
-            Ok(())
+            Ok(cookie_store)
         } else {
-            return Err(anyhow::anyhow!("ERROR: login failed"));
+            Err(TermchanError::LoginError("ログインできません".to_string()))
         }
     }
 
-    pub fn url(&self) -> String {
-        self.url.clone()
+    pub fn url(&self) -> &str {
+        &self.url
     }
 }
 #[cfg(test)]
@@ -112,7 +100,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_do_login() -> anyhow::Result<()> {
-        Login::do_login().await.unwrap();
+        let session = Login::do_login().await.unwrap();
+        println!("session {:?}", session);
+        // let (name, value) = Login::to_tuple(&Some(session.to_owned()));
+        // println!("cookie {}={}", name, value);
         Ok(())
     }
 }

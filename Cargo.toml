@@ -9,6 +9,8 @@ members = ["cli"]
 [dependencies]
 anyhow = "1.0.56"
 async-trait = "0.1.52"
+chrono = "0.4.19"
+chrono-tz = "0.6.1"
 # reqwest_cookie_storeがcookie_store 0.15.1以下にしか対応していない
 # 対応までは0.15.1以下のバージョンを使用する
 cookie_store = "0.15.1"
