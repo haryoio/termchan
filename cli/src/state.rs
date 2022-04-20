@@ -1,7 +1,8 @@
-use std::cell::Cell;
+use std::{cell::Cell, collections::HashMap};
 
 use futures::io::Repeat;
 use termchan::controller::{
+    board::BoardSettingType,
     menu::{BbsCategories, BoardUrl},
     reply::Reply,
     thread::Thread as TCThread,
@@ -47,6 +48,7 @@ pub struct State {
     pub current_history: TabItem,
     pub history: Vec<TabItem>,
     pub board_url: String,
+    pub board_setting: HashMap<BoardSettingType, Option<String>>,
     pub focus_pane: Cell<Pane>,
     pub input_mode: InputMode,
     pub reply_form: ReplyForm,
@@ -62,6 +64,7 @@ impl State {
             current_history: TabItem::Bbsmenu,
             history: Vec::new(),
             board_url: String::new(),
+            board_setting: HashMap::new(),
             focus_pane: Cell::new(Pane::Left),
             input_mode: InputMode::Normal,
             reply_form: ReplyForm::new(),

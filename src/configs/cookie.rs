@@ -7,8 +7,14 @@ pub struct CookieConfig {
 
 impl Default for CookieConfig {
     fn default() -> Self {
-        CookieConfig {
-            path: "$HOME/termchan/cookie.json".to_string(),
-        }
+        let path = dirs::home_dir()
+            .unwrap()
+            .join(".config")
+            .join("termchan")
+            .join("cookies.json")
+            .to_str()
+            .unwrap()
+            .to_string();
+        CookieConfig { path }
     }
 }

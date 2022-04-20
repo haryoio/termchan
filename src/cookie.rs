@@ -2,6 +2,7 @@ use std::{fs::File, io, sync::Arc};
 
 use anyhow::Context;
 use cookie_store;
+use cookie_store::CookieStore as CookieStoreOrig;
 use reqwest_cookie_store::CookieStoreMutex;
 
 use crate::configs::config::Config;
@@ -19,12 +20,14 @@ impl CookieStore {
             .context("cookie is not set")?
             .path
             .clone();
+        println!("path: {}", path);
         Ok(path)
     }
     pub fn load() -> anyhow::Result<CookieStore> {
         let path = CookieStore::path()?;
         let is_exist = std::path::Path::new(&path).exists();
         if !is_exist {
+            println!("{:?}", path);
             File::create(&path).context("failed to create cookie file")?;
         };
         let file = File::open(&path)
@@ -58,5 +61,24 @@ impl CookieStore {
 
     pub fn arc(&self) -> Arc<CookieStoreMutex> {
         Arc::clone(&self.arc)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_cookie_store() {
+        let cookie_store = CookieStore::load().unwrap();
+        let cookie_store = cookie_store.arc();
+        println!("{:?}", cookie_store);
+        let cookie_store = CookieStore::save(cookie_store).unwrap();
+        println!("{:?}", cookie_store);
+        let cookie_store = CookieStore::load().unwrap();
+        let cookie_store = cookie_store.arc();
+        println!("{:?}", cookie_store);
+        let cookie_store = CookieStore::clear().unwrap();
+        println!("{:?}", cookie_store);
     }
 }

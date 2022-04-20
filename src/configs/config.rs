@@ -6,13 +6,12 @@ use std::{
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 
-use crate::configs::{
-    bbsmenu::BBSMenuConfig,
-    board::BoardConfig,
-    cookie::CookieConfig,
-    login::LoginConfig,
-    post::PostConfig,
-    proxy::ProxyConfig,
+use crate::{
+    configs::{
+        bbsmenu::BBSMenuConfig, board::BoardConfig, cookie::CookieConfig, login::LoginConfig,
+        post::PostConfig, proxy::ProxyConfig,
+    },
+    error::TermchanError,
 };
 
 const APP_NAME: &str = "termchan";
@@ -20,17 +19,17 @@ const APP_NAME: &str = "termchan";
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub bbsmenu: BBSMenuConfig,
-    pub board:   Option<BoardConfig>,
-    pub login:   Option<LoginConfig>,
-    pub post:    Option<PostConfig>,
-    pub proxy:   Option<ProxyConfig>,
-    pub cookie:  Option<CookieConfig>,
+    pub board: Option<BoardConfig>,
+    pub login: Option<LoginConfig>,
+    pub post: Option<PostConfig>,
+    pub proxy: Option<ProxyConfig>,
+    pub cookie: Option<CookieConfig>,
 }
 
 impl Config {
-    pub fn load() -> anyhow::Result<Config> {
-        let confdir = dirs::config_dir().context("failed to get config dir")?;
-        let confdir = confdir.join(APP_NAME);
+    pub fn load() -> Result<Config, TermchanError> {
+        let home = dirs::home_dir().context("failed to get config dir")?;
+        let confdir = home.join(".config").join(APP_NAME);
         let is_exist = confdir.exists();
         if !is_exist {
             fs::create_dir_all(&confdir).context("failed to create config dir")?;
@@ -47,8 +46,7 @@ impl Config {
 
         file.read_to_string(&mut contents)
             .context("failed to read config file")?;
-        let config: Config =
-            serde_yaml::from_str(&contents).context("failed to parse config file")?;
+        let config = serde_yaml::from_str(&contents).unwrap();
 
         Ok(config)
     }
@@ -65,6 +63,7 @@ impl Config {
 
     pub fn config_file_path() -> anyhow::Result<String> {
         let path = dirs::config_dir().context("failed to get config dir")?;
+        println!("path: {:?}", path);
         let path = path.join(APP_NAME).join("config.yaml");
         Ok(path.to_str().context("")?.to_string())
     }
@@ -73,12 +72,12 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            cookie:  Some(CookieConfig::default()),
+            cookie: Some(CookieConfig::default()),
             bbsmenu: BBSMenuConfig::default(),
-            board:   None,
-            login:   None,
-            post:    None,
-            proxy:   None,
+            board: None,
+            login: None,
+            post: None,
+            proxy: None,
         }
     }
 }

@@ -1,6 +1,9 @@
-use std::cell::Cell;
+use std::{cell::Cell, vec};
 
-pub enum InputActionType {
+use crossterm::cursor;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+
+pub enum InputAction {
     CursorRight,
     CursorLeft,
     CursorUp,
@@ -14,7 +17,7 @@ pub enum InputActionType {
 
 #[derive(Debug)]
 pub struct Input {
-    pub texts: Vec<String>,
+    pub texts: Vec<Vec<char>>,
     pub cursor: Cursor,
     multiline: Cell<bool>,
 }
@@ -22,14 +25,51 @@ pub struct Input {
 impl Input {
     pub fn new() -> Self {
         Self {
-            texts: vec!["".to_string()],
+            texts: vec![vec![]],
             cursor: Cursor::new(),
             multiline: Cell::new(false),
         }
     }
 
     pub fn text(&self) -> String {
-        self.texts.clone().join("\n").to_string()
+        let mut text = String::new();
+        for line in &self.texts {
+            for c in line {
+                let len = c.len_utf8();
+                text.push(*c);
+            }
+            text.push('\n');
+        }
+        text
+    }
+
+    pub fn count_current_line(&self) -> usize {
+        let mut count = 0;
+        for c in &self.texts[self.cursor.y] {
+            count += UnicodeWidthChar::width(*c).unwrap();
+        }
+        count
+    }
+    pub fn count_prev_line(&self) -> usize {
+        let mut count = 0;
+        for c in &self.texts[self.cursor.y - 1] {
+            count += UnicodeWidthChar::width(*c).unwrap();
+        }
+        count
+    }
+    pub fn prevent_char_size(&self) -> usize {
+        if self.cursor.x == 0 {
+            0
+        } else {
+            UnicodeWidthChar::width(self.texts[self.cursor.y][self.cursor.x - 1]).unwrap()
+        }
+    }
+    pub fn current_char_size(&self) -> usize {
+        if self.texts[self.cursor.y].len() - 1 <= self.cursor.x {
+            0
+        } else {
+            UnicodeWidthChar::width(self.texts[self.cursor.y][self.cursor.x]).unwrap_or(0)
+        }
     }
 
     pub fn multiline(self, multiline: bool) -> Self {
@@ -38,13 +78,16 @@ impl Input {
     }
 
     pub fn set_guard(&mut self) {
-        let x = self.texts[self.cursor.y].chars().count();
+        let x = self.texts[self.cursor.y].len() * 2;
         let y = self.texts.len();
         self.cursor.set_guard(x, y);
     }
 
-    pub fn current_line(&self) -> &str {
-        &self.texts[self.cursor.y]
+    pub fn current_line(&self) -> String {
+        let line = &self.texts[self.cursor.y];
+        let mut line = line.iter().map(|c| *c).collect::<String>();
+        line.truncate(self.cursor.x);
+        line
     }
 
     pub fn backspace(&mut self) {
@@ -53,23 +96,34 @@ impl Input {
             // textsの長さが0以下で、textの長さが1以上であれば、texts[y]をpopする
             // textsの長さが1以上で、textの長さが0以下であれば、textsをpopし、yを-1する。
             // textsの長さが0以下で、textの長さも0以下であれば、何もしない。
-            if self.texts[self.cursor.y].chars().count() == 0 && self.texts.len() == 1 {
-                return;
-            } else if self.texts.len() > 1 && self.texts[self.cursor.y].chars().count() <= 0 {
-                self.texts.pop();
-                self.cursor.up();
-                self.cursor.right();
-            } else if self.texts.len() > 1 && self.texts[self.cursor.y].chars().count() > 0 {
-                self.texts[self.cursor.y].pop();
-                self.cursor.back();
+            if self.cursor.y <= 0 {
+                if self.cursor.x <= 0 {
+                    return;
+                } else if self.cursor.x > 0 {
+                    self.texts[self.cursor.y].remove(self.cursor.x - 1);
+                    self.cursor.x -= 1;
+                }
+            } else {
+                if self.cursor.x <= 0 {
+                    self.texts.remove(self.cursor.y);
+                    self.cursor.y -= 1;
+                    self.set_guard();
+                    self.cursor.x = self.texts[self.cursor.y].len();
+                } else if self.cursor.x > 0 {
+                    self.texts[self.cursor.y].remove(self.cursor.x - 1);
+                    self.cursor.x -= 1;
+                }
             }
             self.set_guard();
         } else {
             if self.cursor.x > 0 {
-                self.texts[self.cursor.y].pop();
+                self.texts[self.cursor.y].remove(self.cursor.x);
+
                 self.cursor.back();
             }
         }
+
+        // println!("\n{:?}", self.cursor);
     }
 
     pub fn clear(&mut self) {
@@ -79,14 +133,15 @@ impl Input {
 
     pub fn char(&mut self, c: char) {
         self.texts[self.cursor.y].insert(self.cursor.x, c);
+        self.set_guard();
         self.cursor.set_cursor(self.cursor.x + 1, self.cursor.y);
-        self.cursor
-            .set_guard(self.texts[self.cursor.y].chars().count(), self.texts.len());
+        self.set_guard();
+        // println!("\n{:?}", self.cursor);
     }
 
     pub fn enter(&mut self) {
         if self.multiline.get() {
-            self.texts.insert(self.cursor.y + 1, "".to_string());
+            self.texts.insert(self.cursor.y + 1, vec![]);
             self.cursor.set_cursor(0, self.cursor.y + 1);
         }
     }
@@ -94,10 +149,8 @@ impl Input {
     pub fn down(&mut self) {
         if self.multiline.get() {
             if self.cursor.y < self.texts.len() - 1 {
-                self.cursor.set_guard(
-                    self.texts[self.cursor.y + 1].chars().count(),
-                    self.cursor.y + 1,
-                );
+                self.cursor
+                    .set_guard(self.texts[self.cursor.y + 1].len(), self.cursor.y + 1);
                 self.cursor.down();
             }
         }
@@ -106,13 +159,22 @@ impl Input {
     pub fn up(&mut self) {
         if self.multiline.get() {
             if self.cursor.y > 0 {
-                self.cursor.set_guard(
-                    self.texts[self.cursor.y - 1].chars().count(),
-                    self.cursor.y - 1,
-                );
+                self.cursor
+                    .set_guard(self.texts[self.cursor.y - 1].len(), self.cursor.y - 1);
                 self.cursor.up();
             }
         }
+    }
+
+    pub fn next(&mut self) {
+        let size = self.current_char_size();
+        self.cursor.next();
+        self.set_guard();
+    }
+
+    pub fn back(&mut self) {
+        let size = self.prevent_char_size();
+        self.cursor.back();
     }
 }
 
@@ -138,7 +200,6 @@ impl Cursor {
         self.width = Some(width);
         self.height = Some(height);
     }
-
     pub fn set_cursor(&mut self, x: usize, y: usize) {
         match (self.width, self.height) {
             (Some(width), Some(height)) => {

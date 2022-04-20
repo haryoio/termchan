@@ -1,6 +1,10 @@
 use crate::state::{InputMode, Pane, TabItem};
+use crossterm::{cursor, execute, terminal};
 use futures::executor::block_on;
-use std::{io::Write, vec};
+use std::{
+    io::{stdout, Write},
+    vec,
+};
 
 use crate::state::State;
 use tui::{

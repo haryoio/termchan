@@ -27,6 +27,7 @@ use termchan::{
         reply::Reply,
         thread::Thread as TCThread,
     },
+    sender::Sender,
 };
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -36,14 +37,16 @@ async fn main() -> Result<()> {
     //     .build()
     //     .unwrap();
 
+    let stdout = io::stdout();
+    let mut state = State::new();
+    let mut renderer = Renderer::new(stdout)?;
+
     // 設定を読み込み
     let config = Config::load();
     let bbsmenu_url = match config.unwrap().bbsmenu.url.first() {
         Some(url) => url.to_owned(),
         None => panic!("BBSMENU URLを設定してください。"),
     };
-
-    let mut state = State::new();
 
     state.category.items = BbsMenu::new(bbsmenu_url.to_string())
         .load()
@@ -87,19 +90,16 @@ async fn main() -> Result<()> {
 
     loop {
         let current_tab = &state.history.last().unwrap();
-        let stdout = io::stdout();
-        let mut renderer = Renderer::new(stdout)?;
+
         renderer.render(&mut state.clone())?;
 
         match rx.recv().await.unwrap() {
             EventType::Input(event) => {
                 {
-                    println!("{:?}", event);
                     match state.input_mode {
                         InputMode::Normal => {
                             match event.code {
                                 KeyCode::Char('q') => {
-                                    drop(renderer);
                                     break;
                                 }
                                 KeyCode::Up => {
@@ -262,7 +262,7 @@ async fn main() -> Result<()> {
                                 state.input_mode = InputMode::Input;
                             }
                             KeyCode::Char(c) => {
-                                block_on(state.reply_form.char(&c.to_string()));
+                                block_on(state.reply_form.char(c));
                             }
                             KeyCode::Backspace => {
                                 block_on(state.reply_form.backspace());
@@ -292,7 +292,22 @@ async fn main() -> Result<()> {
                                 state.reply_form.prev_form().await;
                             }
                             KeyCode::Enter => {
-                                state.input_mode = InputMode::Editing;
+                                if state.reply_form.focused() == 3 {
+                                    let sender =
+                                        Sender::new(&state.current_thread().url()).unwrap();
+
+                                    let message = state.reply_form.message().await;
+                                    let name = state.reply_form.name().await;
+                                    let mail = state.reply_form.mail().await;
+
+                                    let res = sender
+                                        .send(&message, Some(&name), Some(&mail))
+                                        .await
+                                        .unwrap();
+                                    println!("{:?}", res);
+                                } else {
+                                    state.input_mode = InputMode::Editing;
+                                }
                             }
                             KeyCode::Esc => {
                                 state.input_mode = InputMode::Normal;
