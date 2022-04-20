@@ -1,16 +1,16 @@
 PROJECT_NAME = "termchan"
 DEPENDENICIES = "cargo-watch"
+ERROR_LOG = "termchan.log"
 
 .PHONY: core
 core:
 	@echo "$(PROJECT_NAME) try to run core"
 	cargo run
 
-
 .PHONY: cli
 cli:
 	@echo "$(PROJECT_NAME) try to run cli"
-	cargo run -p $@
+	cargo run -p $@ 2>$(ERROR_LOG)
 
 .PHONY: cli-watch
 cli-watch:
