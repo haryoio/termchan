@@ -110,10 +110,28 @@ pub struct BbsCategories {
     pub list: Vec<BoardUrl>,
 }
 
+impl Default for BbsCategories {
+    fn default() -> Self {
+        Self {
+            category: String::new(),
+            list: Vec::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct BoardUrl {
     pub url: String,
     pub title: String,
+}
+
+impl Default for BoardUrl {
+    fn default() -> Self {
+        Self {
+            url: String::new(),
+            title: String::new(),
+        }
+    }
 }
 
 #[cfg(test)]

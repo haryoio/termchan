@@ -1,4 +1,4 @@
-use std::cell::Cell;
+use std::{cell::Cell, fs, io::Write};
 
 use crate::{controller::thread::Thread, login::Login};
 use anyhow::Context;
@@ -52,13 +52,11 @@ impl<'a> Sender<'a> {
         let thread_id = &self.thread.id;
         let board = &self.thread.board_key;
         let url = format!("https://{}/test/read.cgi/{}/{}/", host, board, thread_id);
-        println!("url: {}", url);
         let referer = format!("{}", url); // referer: https://<host>/test/read.cgi/<board_key>/<thread_id>/
         let origin = format!("https://{}", self.thread.server_name); // origin: https://<host>
         let post_url = format!("{}/test/bbs.cgi", &origin); // post_url: https://<host>/test/bbs.cgi
         let time = self.get_time().to_string(); // time: unixtime
         let cookie = vec![("yuki", "akari")];
-
         let cookie = encoder::cookie_from_vec(cookie);
 
         let co = Login::do_login().await.unwrap();
@@ -86,6 +84,9 @@ impl<'a> Sender<'a> {
 
         let name = name.unwrap_or("");
         let mail = mail.unwrap_or("");
+        let (message, ..) = encoding_rs::SHIFT_JIS.encode(message);
+        let message = message.to_vec();
+        let message = unsafe { &*std::str::from_utf8_unchecked(&message) };
 
         // form-data形式のデータを作成
         let form = vec![
@@ -104,7 +105,6 @@ impl<'a> Sender<'a> {
             .cookie_store(true)
             .build()
             .context("failed to build client")?;
-        println!("client: {:?}", client);
 
         let post = move || client.post(&post_url).body(form_data.clone()).send();
 
@@ -114,7 +114,6 @@ impl<'a> Sender<'a> {
             .text()
             .await
             .context("failed to get response")?;
-        println!("res: {}", res);
 
         if res.contains("書き込み確認") {
             post()
@@ -151,12 +150,14 @@ mod tests {
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(0).unwrap();
         println!("{:?}", thread);
+        let message = "てすと";
         let sender = Sender::new(thread)
             .login(true)
-            .send("かきこめない", None, None)
+            .send(message, None, None)
             .await
             .unwrap();
         println!("{}", sender);
+
         // let res = sender.send("test", None, None).await.unwrap();
         // assert_eq!(res, "write success");
     }

@@ -302,10 +302,14 @@ async fn main() -> Result<()> {
                                     let mail = state.reply_form.mail().await;
 
                                     let res = sender
+                                        .login(true)
                                         .send(&message, Some(&name), Some(&mail))
-                                        .await
-                                        .unwrap();
-                                    println!("{:?}", res);
+                                        .await;
+
+                                    if res.is_ok() {
+                                        state.reply_form.clear().await;
+                                        state.input_mode = InputMode::Normal;
+                                    }
                                 } else {
                                     state.input_mode = InputMode::Editing;
                                 }
