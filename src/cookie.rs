@@ -20,14 +20,12 @@ impl CookieStore {
             .context("cookie is not set")?
             .path
             .clone();
-        println!("path: {}", path);
         Ok(path)
     }
     pub fn load() -> anyhow::Result<CookieStore> {
         let path = CookieStore::path()?;
         let is_exist = std::path::Path::new(&path).exists();
         if !is_exist {
-            println!("{:?}", path);
             File::create(&path).context("failed to create cookie file")?;
         };
         let file = File::open(&path)

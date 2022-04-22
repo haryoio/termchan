@@ -35,7 +35,6 @@ impl Input {
         let mut text = String::new();
         for line in &self.texts {
             for c in line {
-                let len = c.len_utf8();
                 text.push(*c);
             }
             text.push('\n');
