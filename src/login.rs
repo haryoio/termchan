@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use cookie_store::{Cookie, Error};
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
 use reqwest_cookie_store::CookieStoreMutex;
 

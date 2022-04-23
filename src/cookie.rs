@@ -2,7 +2,6 @@ use std::{fs::File, io, sync::Arc};
 
 use anyhow::Context;
 use cookie_store;
-use cookie_store::CookieStore as CookieStoreOrig;
 use reqwest_cookie_store::CookieStoreMutex;
 
 use crate::configs::config::Config;
@@ -62,21 +61,21 @@ impl CookieStore {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn test_cookie_store() {
-        let cookie_store = CookieStore::load().unwrap();
-        let cookie_store = cookie_store.arc();
-        println!("{:?}", cookie_store);
-        let cookie_store = CookieStore::save(cookie_store).unwrap();
-        println!("{:?}", cookie_store);
-        let cookie_store = CookieStore::load().unwrap();
-        let cookie_store = cookie_store.arc();
-        println!("{:?}", cookie_store);
-        let cookie_store = CookieStore::clear().unwrap();
-        println!("{:?}", cookie_store);
-    }
-}
+//     #[test]
+//     fn test_cookie_store() {
+//         let cookie_store = CookieStore::load().unwrap();
+//         let cookie_store = cookie_store.arc();
+//         println!("{:?}", cookie_store);
+//         let cookie_store = CookieStore::save(cookie_store).unwrap();
+//         println!("{:?}", cookie_store);
+//         let cookie_store = CookieStore::load().unwrap();
+//         let cookie_store = cookie_store.arc();
+//         println!("{:?}", cookie_store);
+//         let cookie_store = CookieStore::clear().unwrap();
+//         println!("{:?}", cookie_store);
+//     }
+// }
