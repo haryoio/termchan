@@ -2,16 +2,8 @@ use std::vec;
 
 use anyhow::Context;
 use reqwest::header::{
-    HeaderMap,
-    HeaderName,
-    HeaderValue,
-    ACCEPT,
-    ACCEPT_ENCODING,
-    ACCEPT_LANGUAGE,
-    CACHE_CONTROL,
-    CONTENT_TYPE,
-    UPGRADE_INSECURE_REQUESTS,
-    USER_AGENT,
+    HeaderMap, HeaderName, HeaderValue, ACCEPT, ACCEPT_ENCODING, ACCEPT_LANGUAGE, CACHE_CONTROL,
+    CONTENT_TYPE, UPGRADE_INSECURE_REQUESTS, USER_AGENT,
 };
 
 pub fn sjis_to_utf8(bytes: &[u8]) -> anyhow::Result<String> {
@@ -42,7 +34,7 @@ pub fn base_headers() -> Vec<(HeaderName, String)> {
     (CACHE_CONTROL, "max-age=0"),
     (CONTENT_TYPE, "application/x-www-form-urlencoded"),
     (UPGRADE_INSECURE_REQUESTS, "1"),
-    (USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0")];
+    (USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36")];
     let map = map.into_iter().map(|(k, v)| (k, v.to_string())).collect();
     map
 }

@@ -10,7 +10,7 @@ core:
 .PHONY: cli
 cli:
 	@echo "$(PROJECT_NAME) try to run cli"
-	cargo run -p $@ 2>$(ERROR_LOG)
+	cargo run -p $@
 
 .PHONY: cli-watch
 cli-watch:

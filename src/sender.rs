@@ -1,8 +1,11 @@
-use std::cell::Cell;
+use std::{cell::Cell, fs, io::Write};
 
-use crate::{controller::thread::Thread, login::Login};
+use crate::{configs::config::Config, controller::thread::Thread, login::Login};
 use anyhow::Context;
-use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
+use reqwest::{
+    header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
+    Proxy,
+};
 
 use crate::encoder;
 
@@ -18,26 +21,28 @@ use crate::encoder;
 
 pub struct Sender<'a> {
     thread: &'a Thread,
-    login: Cell<bool>,
-    proxy: Cell<bool>,
+    login: bool,
+    proxy: bool,
+    user_agent: String,
 }
 
 impl<'a> Sender<'a> {
     pub fn new(thread: &Thread) -> Sender {
         Sender {
             thread,
-            login: Cell::new(false),
-            proxy: Cell::new(false),
+            login: false,
+            proxy: false,
+            user_agent: String::new(),
         }
     }
 
-    pub fn login(&self, enable: bool) -> &Self {
-        self.login.set(enable);
+    pub fn login(&mut self, enable: bool) -> &Self {
+        self.login = enable;
         self
     }
 
-    pub fn proxy(&self, enable: bool) -> &Self {
-        self.proxy.set(enable);
+    pub fn proxy(&mut self, enable: bool) -> &Self {
+        self.proxy = enable;
         self
     }
 
@@ -52,26 +57,24 @@ impl<'a> Sender<'a> {
         let thread_id = &self.thread.id;
         let board = &self.thread.board_key;
         let url = format!("https://{}/test/read.cgi/{}/{}/", host, board, thread_id);
-        println!("url: {}", url);
         let referer = format!("{}", url); // referer: https://<host>/test/read.cgi/<board_key>/<thread_id>/
         let origin = format!("https://{}", self.thread.server_name); // origin: https://<host>
         let post_url = format!("{}/test/bbs.cgi", &origin); // post_url: https://<host>/test/bbs.cgi
         let time = self.get_time().to_string(); // time: unixtime
         let cookie = vec![("yuki", "akari")];
-
         let cookie = encoder::cookie_from_vec(cookie);
 
-        let co = Login::do_login().await.unwrap();
-        let coo = &*co.lock().unwrap();
-        let coo = coo.iter_any().collect::<Vec<_>>();
+        // let co = Login::do_login().await.unwrap();
+        // let coo = &*co.lock().unwrap();
+        // let coo = coo.iter_any().collect::<Vec<_>>();
         let mut cc = String::new();
-        for c in coo {
-            if c.name() == "sid" {
-                cc = format!("{}={}", c.name(), c.value());
-            }
-        }
+        // for c in coo {
+        //     if c.name() == "sid" {
+        //         cc = format!("{}={}", c.name(), c.value());
+        //     }
+        // }
 
-        let cookie = format!("{}; {}", cookie, cc);
+        let cookie_login = format!("{}; {}", cookie, cc);
 
         let content_type = "application/x-www-form-urlencoded".to_string();
         let mut headers: Vec<(HeaderName, String)> = encoder::base_headers();
@@ -80,12 +83,15 @@ impl<'a> Sender<'a> {
             (ORIGIN, origin),
             (REFERER, referer),
             (CONTENT_TYPE, content_type),
-            (COOKIE, cookie),
+            (COOKIE, if self.login { cookie_login } else { cookie }),
         ]);
         let headers = encoder::headers_from_vec(headers)?;
 
         let name = name.unwrap_or("");
         let mail = mail.unwrap_or("");
+        let (message, ..) = encoding_rs::SHIFT_JIS.encode(message);
+        let message = message.to_vec();
+        let message = unsafe { &*std::str::from_utf8_unchecked(&message) };
 
         // form-data形式のデータを作成
         let form = vec![
@@ -98,14 +104,34 @@ impl<'a> Sender<'a> {
             ("submit", "書き込む"),
             ("oekaki_thread1", ""),
         ];
-        let form_data = encoder::formvalue_from_vec(form)?;
-        let client = reqwest::Client::builder()
-            .default_headers(headers.clone())
-            .cookie_store(true)
-            .build()
-            .context("failed to build client")?;
-        println!("client: {:?}", client);
 
+        let proxy = if self.proxy {
+            let config = Config::load().context("failed to load config")?;
+            let config = config.proxy;
+            let config = match config {
+                Some(proxy) => proxy.build(),
+                None => return Err(anyhow::anyhow!("proxy is not set")),
+            };
+            Some(config)
+        } else {
+            None
+        };
+
+        let client = match proxy {
+            Some(proxy) => reqwest::Client::builder()
+                .default_headers(headers.clone())
+                .cookie_store(true)
+                .proxy(proxy)
+                .build()
+                .context("failed to build client")?,
+            None => reqwest::Client::builder()
+                .default_headers(headers.clone())
+                .cookie_store(true)
+                .build()
+                .context("failed to build client")?,
+        };
+
+        let form_data = encoder::formvalue_from_vec(form)?;
         let post = move || client.post(&post_url).body(form_data.clone()).send();
 
         let res = post()
@@ -114,7 +140,6 @@ impl<'a> Sender<'a> {
             .text()
             .await
             .context("failed to get response")?;
-        println!("res: {}", res);
 
         if res.contains("書き込み確認") {
             post()
@@ -124,8 +149,7 @@ impl<'a> Sender<'a> {
                 .await
                 .context("failed to get response")?;
         }
-
-        if res.contains("書き込みました。") {
+        if !res.contains("ERROR") {
             Ok("write success".to_string())
         } else {
             Ok("write failed".to_string())
@@ -141,23 +165,52 @@ impl<'a> Sender<'a> {
 
 #[cfg(test)]
 mod tests {
+    use chrono::{Date, Duration, Local, Utc};
+
     use crate::controller::board::Board;
 
     use super::*;
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://term.5ch.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
-        let thread = &*threads.get(0).unwrap();
-        println!("{:?}", thread);
+        let thread = &*threads.get(10).unwrap();
+        let message = "ろぎん";
         let sender = Sender::new(thread)
             .login(true)
-            .send("かきこめない", None, None)
+            .send(message, None, None)
             .await
             .unwrap();
         println!("{}", sender);
+
         // let res = sender.send("test", None, None).await.unwrap();
         // assert_eq!(res, "write success");
+    }
+
+    async fn send_proxy() {
+        let url = "https://mi.termch.net/news4vip/";
+        let threads = Board::new(url.to_string()).load().await.unwrap();
+        let thread = &*threads.get(10).unwrap();
+        let message = Local::now().format("投稿 %Y-%m-%d %H:%M:%S").to_string();
+        let sender = Sender::new(thread)
+            // .login(true)
+            .proxy(true)
+            .send(&message, None, None)
+            .await
+            .unwrap();
+        println!("---------");
+        println!("writed at: {}", Local::now().format("%m-%d %H:%M:%S"));
+        println!("title: {}", thread.title);
+        println!("URL: {}", sender);
+
+        // let res = sender.send("test", None, None).await.unwrap();
+        // assert_eq!(res, "write success");
+    }
+    #[tokio::test]
+    async fn looptest() {
+        loop {
+            send_proxy().await;
+        }
     }
 }

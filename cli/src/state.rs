@@ -57,10 +57,10 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         Self {
-            category: StatefulList::with_items(vec![]),
-            boards: AtomicStatefulList::with_items(vec![]),
-            threads: StatefulList::with_items(vec![]),
-            thread: AtomicStatefulList::with_items(vec![]),
+            category: StatefulList::with_items(vec![BbsCategories::default()]),
+            boards: AtomicStatefulList::with_items(vec![BoardUrl::default()]),
+            threads: StatefulList::with_items(vec![TCThread::default()]),
+            thread: AtomicStatefulList::with_items(vec![Reply::default()]),
             current_history: TabItem::Bbsmenu,
             history: Vec::new(),
             board_url: String::new(),

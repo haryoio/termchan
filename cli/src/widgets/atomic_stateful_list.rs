@@ -37,7 +37,7 @@ impl<T: Clone> AtomicStatefulList<T> {
         let i = match self.state.selected() {
             Some(i) => {
                 let len = self.items.lock().unwrap().borrow().len();
-                if i > len {
+                if i > len - 2 {
                     if self.is_loop {
                         0
                     } else {
