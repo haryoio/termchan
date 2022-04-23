@@ -15,7 +15,6 @@ bbsmenu:
 #     repost_interval: 0
 
 # proxy:
-#     host: host
-#     port: 9999
-#     user: user
+#     proxy_scheme: your.proxy.domain:1234
+#     username: user
 #     password: password

@@ -46,7 +46,11 @@ impl Config {
 
         file.read_to_string(&mut contents)
             .context("failed to read config file")?;
-        let config = serde_yaml::from_str(&contents).unwrap();
+        let config = serde_yaml::from_str(&contents);
+        let config = match config {
+            Ok(config) => config,
+            Err(e) => return Err(TermchanError::ConfigError(e.to_string())),
+        };
 
         Ok(config)
     }
@@ -102,10 +106,10 @@ liked_board_path:
 #     repost_interval: 0
 
 # proxy:
-#     host: host
-#     port: 9999
-#     user: user
+#     proxy_scheme: your.proxy.domain:1234
+#     username: user
 #     password: password
+
 
 cookie:
     path: $HOME/.config/termchan/cookie.json
