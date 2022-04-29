@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-use scraper::Html;
-
 pub type Replies = Vec<Reply>;
 
 #[derive(Debug, Clone)]
@@ -22,11 +20,6 @@ impl Reply {
             id: id.to_string(),
             message: message.to_string(),
         }
-    }
-
-    pub fn as_node(&self) -> anyhow::Result<Html> {
-        let fragment = Html::parse_fragment(self.message.as_str());
-        anyhow::Ok(fragment)
     }
 }
 
