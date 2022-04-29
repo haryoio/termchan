@@ -50,7 +50,6 @@ impl CookieStore {
             .map(io::BufWriter::new)
             .context("failed to create cookie file")?;
         let store = arc.lock().unwrap();
-        println!("{:?}", store);
         store.save_json(&mut writer).unwrap();
         Ok(())
     }
@@ -68,15 +67,6 @@ impl CookieStore {
         Arc::clone(&self.arc)
     }
 
-    pub fn save_raw(cookie: &str) {
-        let c = Cookie::parse(cookie).unwrap();
-        let is_exist = std::path::Path::new("/tmp/cookie.txt").exists();
-        let mut file = match is_exist {
-            true => File::create("/tmp/cookie.txt").unwrap(),
-            false => File::open("/tmp/cookie.txt").unwrap(),
-        };
-        file.write_all(c.to_string().as_bytes()).unwrap();
-    }
     pub async fn load_raw() -> Option<String> {
         let path = CookieStore::path().await.unwrap();
         let file = OpenOptions::new().read(true).open(&path);
@@ -84,10 +74,8 @@ impl CookieStore {
             Ok(file) => file,
             Err(_) => return None,
         };
-        println!("{:?}", file);
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
-        println!("read {}", contents);
         let v: Result<Value, Error> = serde_json::from_str(&contents);
         let v = match v {
             Ok(v) => v,

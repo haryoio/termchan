@@ -59,3 +59,21 @@ pub fn get_error_message(html: &str) -> Option<String> {
     }
     Some("".to_string())
 }
+
+pub fn get_url_write_success(html: &str) -> Option<String> {
+    for l in html.lines() {
+        if l.starts_with("<meta content=1;URL=//") {
+            return Some(format!(
+                "https://{}",
+                l.split("//")
+                    .nth(1)
+                    .unwrap()
+                    .split(" ")
+                    .nth(0)
+                    .unwrap()
+                    .to_string()
+            ));
+        }
+    }
+    Some("".to_string())
+}

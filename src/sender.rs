@@ -1,6 +1,9 @@
 use crate::{
-    configs::config::Config, controller::thread::Thread, cookie::CookieStore, login::Login,
-    patterns::get_error_message,
+    configs::config::Config,
+    controller::thread::Thread,
+    cookie::CookieStore,
+    login::Login,
+    patterns::{get_error_message, get_url_write_success},
 };
 use anyhow::Context;
 use reqwest::{
@@ -71,7 +74,6 @@ impl Sender {
         let mut cookie = encoder::cookie_from_vec(cookie_vec.clone());
         cookie.push_str("; ");
         cookie.push_str(&cache);
-        println!("{}", cookie);
 
         let content_type = "application/x-www-form-urlencoded".to_string();
 
@@ -137,8 +139,6 @@ impl Sender {
             .await
             .context("failed to get response")?;
 
-        println!("{}", res);
-
         if res.contains("書き込み確認") {
             client
                 .post(&post_url)
@@ -150,14 +150,13 @@ impl Sender {
                 .await
                 .context("failed to get response")?;
         }
-        // println!("{:?}", cookie_store);
 
         if !res.contains("ERROR") {
-            println!("{}", res);
-            Ok("write success".to_string())
+            let url = get_url_write_success(&res).unwrap();
+            Ok(url)
         } else {
-            let error = get_error_message(&res);
-            Err(anyhow::anyhow!("{}", error.unwrap()))
+            let error = get_error_message(&res).unwrap();
+            Err(anyhow::anyhow!("{}", error))
         }
     }
 
@@ -181,7 +180,6 @@ mod tests {
         let url = "https://mi.5ch.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
-        println!("{:?}", thread);
         let message = "てすと";
         let sender = Sender::new(thread)
             .login(true)
