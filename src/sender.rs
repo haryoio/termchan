@@ -1,6 +1,8 @@
 use std::{cell::Cell, fs, io::Write};
 
-use crate::{configs::config::Config, controller::thread::Thread, login::Login};
+use crate::{
+    configs::config::Config, controller::thread::Thread, error::TermchanError, login::Login,
+};
 use anyhow::Context;
 use reqwest::{
     header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
@@ -52,7 +54,7 @@ impl<'a> Sender<'a> {
         message: &str,
         name: Option<&str>,
         mail: Option<&str>,
-    ) -> anyhow::Result<String> {
+    ) -> Result<String, TermchanError> {
         let host = &self.thread.server_name;
         let thread_id = &self.thread.id;
         let board = &self.thread.board_key;
@@ -64,17 +66,17 @@ impl<'a> Sender<'a> {
         let cookie = vec![("yuki", "akari")];
         let cookie = encoder::cookie_from_vec(cookie);
 
-        // let co = Login::do_login().await.unwrap();
-        // let coo = &*co.lock().unwrap();
-        // let coo = coo.iter_any().collect::<Vec<_>>();
-        let mut cc = String::new();
-        // for c in coo {
-        //     if c.name() == "sid" {
-        //         cc = format!("{}={}", c.name(), c.value());
-        //     }
-        // }
+        let cookie_store = Login::do_login().await.unwrap();
+        let cookie_store = &cookie_store.lock().unwrap();
+        let cookie_store = cookie_store.iter_any().collect::<Vec<_>>();
+        let mut sid = String::new();
+        for c in cookie_store {
+            if c.name() == "sid" {
+                sid = format!("{}={}", c.name(), c.value());
+            }
+        }
 
-        let cookie_login = format!("{}; {}", cookie, cc);
+        let cookie_login = format!("{}; {}", cookie, sid);
 
         let content_type = "application/x-www-form-urlencoded".to_string();
         let mut headers: Vec<(HeaderName, String)> = encoder::base_headers();
@@ -110,7 +112,7 @@ impl<'a> Sender<'a> {
             let config = config.proxy;
             let config = match config {
                 Some(proxy) => proxy.build(),
-                None => return Err(anyhow::anyhow!("proxy is not set")),
+                None => return Err(TermchanError::ConfigError("proxy is not set".to_string())),
             };
             Some(config)
         } else {
@@ -173,7 +175,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://term.5ch.net/news4vip/";
+        let url = "https://mi.5ch.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
         let message = "ろぎん";
@@ -189,10 +191,10 @@ mod tests {
     }
 
     async fn send_proxy() {
-        let url = "https://mi.termch.net/news4vip/";
+        let url = "https://mi.5ch.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
-        let message = Local::now().format("投稿 %Y-%m-%d %H:%M:%S").to_string();
+        let message = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let sender = Sender::new(thread)
             // .login(true)
             .proxy(true)
@@ -209,8 +211,6 @@ mod tests {
     }
     #[tokio::test]
     async fn looptest() {
-        loop {
-            send_proxy().await;
-        }
+        send_proxy().await;
     }
 }
