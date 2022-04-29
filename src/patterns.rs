@@ -42,3 +42,20 @@ lazy_static! {
 pub fn parse_thread_list(before: &str) -> regex::CaptureMatches {
     THREAD_LIST_RE.captures_iter(&before)
 }
+
+pub fn get_error_message(html: &str) -> Option<String> {
+    for l in html.lines() {
+        if l.contains("ERROR:") {
+            return Some(
+                l.split("<b>")
+                    .nth(1)
+                    .unwrap()
+                    .split("</b>")
+                    .nth(0)
+                    .unwrap()
+                    .to_string(),
+            );
+        }
+    }
+    Some("".to_string())
+}

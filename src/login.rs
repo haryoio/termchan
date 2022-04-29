@@ -4,15 +4,15 @@ use anyhow::Context;
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
 use reqwest_cookie_store::CookieStoreMutex;
 
-use crate::{configs::config::Config, cookie::CookieStore, encoder, error::TermchanError};
+use crate::{configs::config::Config, cookie::CookieStore, encoder};
 
 pub struct Login {
     url: String,
 }
 
 impl Login {
-    pub async fn do_login() -> Result<Arc<CookieStoreMutex>, TermchanError> {
-        let config = Config::load().context("failed to load config")?;
+    pub async fn do_login() -> anyhow::Result<()> {
+        let config = Config::load().await.context("failed to load config")?;
         let config = config.login.as_ref().context("login is not set")?;
         let url = config.url.as_ref().context("url is not set")?;
 
@@ -24,12 +24,12 @@ impl Login {
             .to_string();
 
         // cookieJarを作成
-        let cookie_store = CookieStore::load().unwrap().arc();
+        let cookie_store: Arc<CookieStoreMutex> = CookieStore::load().await.unwrap();
 
         let headers = encoder::headers_from_vec(encoder::base_headers())?;
         let client = reqwest::Client::builder()
             .default_headers(headers)
-            .cookie_provider(cookie_store.clone())
+            .cookie_provider(Arc::clone(&cookie_store))
             .build()
             .context("failed to create client")?;
 
@@ -61,11 +61,12 @@ impl Login {
             .unwrap();
 
         let html = resp.text().await.unwrap();
+        CookieStore::save(Arc::clone(&cookie_store)).await.unwrap();
         if html.contains("ログインしました") || html.contains("ログインしています")
         {
-            Ok(cookie_store.clone())
+            Ok(())
         } else {
-            Err(TermchanError::LoginError(html))
+            Err(anyhow::anyhow!("failed to login"))
         }
     }
 
@@ -80,9 +81,24 @@ mod tests {
     #[tokio::test]
     async fn test_do_login() -> anyhow::Result<()> {
         let session = Login::do_login().await.unwrap();
-        println!("session {:?}", session);
+        let cookie = CookieStore::load_raw().await.unwrap();
+        println!("{:?}", cookie);
         // let (name, value) = Login::to_tuple(&Some(session.to_owned()));
         // println!("cookie {}={}", name, value);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_get_cookie() -> anyhow::Result<()> {
+        let host = "mi.5ch.net";
+        let _ = Login::do_login().await.unwrap();
+        let cookie = CookieStore::load().await.unwrap();
+
+        let cookie_store = &cookie.lock().unwrap();
+        let domain = host.split('.').collect::<Vec<&str>>()[1..].join(".");
+        println!("domain: {}", domain);
+        let cookie_value = cookie_store.get(&domain, "/", "sid").unwrap();
+        println!("cookie_value {:?}", cookie_value);
         Ok(())
     }
 }

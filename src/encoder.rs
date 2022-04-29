@@ -34,7 +34,7 @@ pub fn base_headers() -> Vec<(HeaderName, String)> {
     (CACHE_CONTROL, "max-age=0"),
     (CONTENT_TYPE, "application/x-www-form-urlencoded"),
     (UPGRADE_INSECURE_REQUESTS, "1"),
-    (USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.88 Safari/537.36")];
+    (USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:99.0) Gecko/20100101 Firefox/99.0")];
     let map = map.into_iter().map(|(k, v)| (k, v.to_string())).collect();
     map
 }
