@@ -27,7 +27,7 @@ use termchan::{
         reply::Reply,
         thread::Thread as TCThread,
     },
-    sender::Sender,
+    post_reply::Sender,
 };
 #[tokio::main]
 async fn main() -> Result<()> {

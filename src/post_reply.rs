@@ -1,35 +1,29 @@
-use std::{cell::Cell, fs, io::Write};
-
-use crate::{configs::config::Config, controller::thread::Thread, login::Login};
+use crate::{
+    configs::config::Config,
+    controller::thread::Thread,
+    cookie::CookieStore,
+    login::Login,
+    patterns::{get_error_message, get_url_write_success},
+};
 use anyhow::Context;
 use reqwest::{
     header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
-    Proxy,
+    Url,
 };
 
 use crate::encoder;
 
-// TODO: ビルダーパターンで書き直す
-// TODO: ログイン, 名前, メールをビルドパラメータで渡す
-// let client = termch::sender::SenderBuilder::new()
-//      .message("test")
-//      .name(None)
-//      .login(vec![(mail, secret)])
-//      .build();
-// !書き込み時のエラー（他所でやってください）などはここで捕まえる
-// let res = client.send().await?;
-
-pub struct Sender<'a> {
-    thread: &'a Thread,
+pub struct Sender {
+    thread: Thread,
     login: bool,
     proxy: bool,
     user_agent: String,
 }
 
-impl<'a> Sender<'a> {
+impl Sender {
     pub fn new(thread: &Thread) -> Sender {
         Sender {
-            thread,
+            thread: thread.clone(),
             login: false,
             proxy: false,
             user_agent: String::new(),
@@ -61,31 +55,17 @@ impl<'a> Sender<'a> {
         let origin = format!("https://{}", self.thread.server_name); // origin: https://<host>
         let post_url = format!("{}/test/bbs.cgi", &origin); // post_url: https://<host>/test/bbs.cgi
         let time = self.get_time().to_string(); // time: unixtime
-        let cookie = vec![("yuki", "akari")];
-        let cookie = encoder::cookie_from_vec(cookie);
 
-        // let co = Login::do_login().await.unwrap();
-        // let coo = &*co.lock().unwrap();
-        // let coo = coo.iter_any().collect::<Vec<_>>();
-        let mut cc = String::new();
-        // for c in coo {
-        //     if c.name() == "sid" {
-        //         cc = format!("{}={}", c.name(), c.value());
-        //     }
-        // }
-
-        let cookie_login = format!("{}; {}", cookie, cc);
+        if self.login {
+            let _ = Login::do_login().await.unwrap();
+        };
+        let cache = CookieStore::load_raw().await.unwrap_or_default();
+        let cookie_vec = vec![("READJS", "\"off\""), ("yuki", "akari")];
+        let mut cookie = encoder::cookie_from_vec(cookie_vec.clone());
+        cookie.push_str("; ");
+        cookie.push_str(&cache);
 
         let content_type = "application/x-www-form-urlencoded".to_string();
-        let mut headers: Vec<(HeaderName, String)> = encoder::base_headers();
-        headers.append(&mut vec![
-            (HOST, host.to_string()),
-            (ORIGIN, origin),
-            (REFERER, referer),
-            (CONTENT_TYPE, content_type),
-            (COOKIE, if self.login { cookie_login } else { cookie }),
-        ]);
-        let headers = encoder::headers_from_vec(headers)?;
 
         let name = name.unwrap_or("");
         let mail = mail.unwrap_or("");
@@ -104,37 +84,43 @@ impl<'a> Sender<'a> {
             ("submit", "書き込む"),
             ("oekaki_thread1", ""),
         ];
+        let form_data = encoder::formvalue_from_vec(form)?;
 
         let proxy = if self.proxy {
-            let config = Config::load().context("failed to load config")?;
+            let config = Config::load().await.context("failed to load config")?;
             let config = config.proxy;
-            let config = match config {
-                Some(proxy) => proxy.build(),
-                None => return Err(anyhow::anyhow!("proxy is not set")),
-            };
-            Some(config)
+            match config {
+                Some(proxy) => Some(proxy.build()),
+                None => None,
+            }
         } else {
             None
         };
 
+        let mut headers: Vec<(HeaderName, String)> = encoder::base_headers();
+        headers.append(&mut vec![
+            (HOST, host.to_string()),
+            (ORIGIN, origin),
+            (REFERER, referer),
+            (CONTENT_TYPE, content_type),
+            (COOKIE, cookie),
+        ]);
+        let headers = encoder::headers_from_vec(headers)?;
+
+        let client = reqwest::Client::builder().default_headers(headers);
+
         let client = match proxy {
-            Some(proxy) => reqwest::Client::builder()
-                .default_headers(headers.clone())
-                .cookie_store(true)
+            Some(proxy) => client
                 .proxy(proxy)
                 .build()
                 .context("failed to build client")?,
-            None => reqwest::Client::builder()
-                .default_headers(headers.clone())
-                .cookie_store(true)
-                .build()
-                .context("failed to build client")?,
+            None => client.build().context("failed to build client")?,
         };
 
-        let form_data = encoder::formvalue_from_vec(form)?;
-        let post = move || client.post(&post_url).body(form_data.clone()).send();
-
-        let res = post()
+        let res = client
+            .post(&post_url)
+            .body(form_data.clone())
+            .send()
             .await
             .context("failed to send request")?
             .text()
@@ -142,17 +128,23 @@ impl<'a> Sender<'a> {
             .context("failed to get response")?;
 
         if res.contains("書き込み確認") {
-            post()
+            client
+                .post(&post_url)
+                .body(form_data.clone())
+                .send()
                 .await
                 .context("failed to send request")?
                 .text()
                 .await
                 .context("failed to get response")?;
         }
+
         if !res.contains("ERROR") {
-            Ok("write success".to_string())
+            let url = get_url_write_success(&res).unwrap();
+            Ok(url)
         } else {
-            Ok("write failed".to_string())
+            let error = get_error_message(&res).unwrap();
+            Err(anyhow::anyhow!("{}", error))
         }
     }
 
@@ -173,10 +165,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://term.5ch.net/news4vip/";
+        let url = "https://mi.5ch.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
-        let message = "ろぎん";
+        let message = "てすと";
         let sender = Sender::new(thread)
             .login(true)
             .send(message, None, None)
@@ -188,11 +180,13 @@ mod tests {
         // assert_eq!(res, "write success");
     }
 
+    #[tokio::test]
     async fn send_proxy() {
-        let url = "https://mi.termch.net/news4vip/";
+        let url = "https://mi.5ch.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
-        let message = Local::now().format("投稿 %Y-%m-%d %H:%M:%S").to_string();
+        println!("{:?}", thread);
+        let message = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let sender = Sender::new(thread)
             // .login(true)
             .proxy(true)
@@ -206,11 +200,5 @@ mod tests {
 
         // let res = sender.send("test", None, None).await.unwrap();
         // assert_eq!(res, "write success");
-    }
-    #[tokio::test]
-    async fn looptest() {
-        loop {
-            send_proxy().await;
-        }
     }
 }
