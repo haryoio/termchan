@@ -126,7 +126,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_substr_to_subback_url() {
-        let url = "https://mi.5ch.net/termchan/subback.html";
+        let url = "https://mi.termchan.net/termchan/subback.html";
         let board = Board::new(url.to_string());
 
         assert_eq!(board.url, "https://termchan.net/termchan");
@@ -134,7 +134,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_board_load() {
-        let url = "https://mi.5ch.net/news4vip";
+        let url = "https://mi.termchan.net/news4vip";
         let board = Board::new(url.to_string());
         println!("{:?}", board.load().await.unwrap());
 
@@ -144,7 +144,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_setting_load() {
-        let url = "https://mi.5ch.net/news4vip";
+        let url = "https://mi.termchan.net/news4vip";
         let board = Board::new(url.to_string());
         let resp = board.load_settings().await.unwrap();
         println!("{:?}", resp);

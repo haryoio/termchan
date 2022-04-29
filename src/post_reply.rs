@@ -166,7 +166,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
         let message = "てすと";
@@ -183,7 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn send_proxy() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
         println!("{:?}", thread);

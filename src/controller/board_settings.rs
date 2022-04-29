@@ -38,7 +38,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_load_5chvip_settings() {
-        let url = "https://mi.5ch.net/news4vip/SETTING.TXT";
+        let url = "https://mi.termchan.net/news4vip/SETTING.TXT";
         let settings = BoardSettings::new(url).load().await.unwrap();
     }
 }

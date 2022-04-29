@@ -202,7 +202,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let sender = Sender::new(url.to_string())
             .send("てすと", None, None, "てすと")
             .await
@@ -212,7 +212,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_cert() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let sender = Sender::new(url.to_string()).get_cert_and_site().await;
         println!("{:?}", sender);
     }
