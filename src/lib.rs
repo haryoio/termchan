@@ -11,8 +11,9 @@ pub mod cookie;
 pub mod encoder;
 pub mod login;
 pub mod patterns;
+pub mod post_reply;
+pub mod post_thread;
 pub mod receiver;
-pub mod sender;
 pub mod controller {
     pub mod board;
     pub mod menu;

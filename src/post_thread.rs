@@ -4,6 +4,7 @@ use crate::{
     cookie::CookieStore,
     login::Login,
     patterns::{get_error_message, get_url_write_success},
+    receiver::Reciever,
 };
 use anyhow::Context;
 use reqwest::{
@@ -13,27 +14,17 @@ use reqwest::{
 
 use crate::encoder;
 
-// TODO: ビルダーパターンで書き直す
-// TODO: ログイン, 名前, メールをビルドパラメータで渡す
-// let client = termch::sender::SenderBuilder::new()
-//      .message("test")
-//      .name(None)
-//      .login(vec![(mail, secret)])
-//      .build();
-// !書き込み時のエラー（他所でやってください）などはここで捕まえる
-// let res = client.send().await?;
-
 pub struct Sender {
-    thread: Thread,
+    url: String,
     login: bool,
     proxy: bool,
     user_agent: String,
 }
 
 impl Sender {
-    pub fn new(thread: &Thread) -> Sender {
+    pub fn new(url: String) -> Sender {
         Sender {
-            thread: thread.clone(),
+            url,
             login: false,
             proxy: false,
             user_agent: String::new(),
@@ -53,18 +44,17 @@ impl Sender {
     // https://<host>/test/read.cgi/<board_key>/<thread_id>/
     pub async fn send(
         &self,
-        message: &str,
+        title: &str,
         name: Option<&str>,
         mail: Option<&str>,
+        message: &str,
     ) -> anyhow::Result<String> {
-        let host = &self.thread.server_name;
-        let thread_id = &self.thread.id;
-        let board = &self.thread.board_key;
-        let url = format!("https://{}/test/read.cgi/{}/{}/", host, board, thread_id);
-        let referer = format!("{}", url); // referer: https://<host>/test/read.cgi/<board_key>/<thread_id>/
-        let origin = format!("https://{}", self.thread.server_name); // origin: https://<host>
-        let post_url = format!("{}/test/bbs.cgi", &origin); // post_url: https://<host>/test/bbs.cgi
-        let time = self.get_time().to_string(); // time: unixtime
+        let host = self.url.split("/").nth(2).unwrap();
+        let board_name = self.url.split("/").nth(3).unwrap();
+        let referer = format!("{}", self.url);
+        let origin = self.url.split("/").collect::<Vec<_>>()[..3].join("/");
+        let post_url = format!("{}/test/bbs.cgi", &origin);
+        let time = self.get_time().to_string();
 
         if self.login {
             let _ = Login::do_login().await.unwrap();
@@ -82,18 +72,25 @@ impl Sender {
         let (message, ..) = encoding_rs::SHIFT_JIS.encode(message);
         let message = message.to_vec();
         let message = unsafe { &*std::str::from_utf8_unchecked(&message) };
+        let (title, ..) = encoding_rs::SHIFT_JIS.encode(title);
+        let title = title.to_vec();
+        let title = unsafe { &*std::str::from_utf8_unchecked(&title) };
+
+        let (cert, site) = self.get_cert_and_site().await;
 
         // form-data形式のデータを作成
         let form = vec![
+            ("submit", "新規スレッド作成"),
+            ("subject", title),
             ("FROM", name),
             ("mail", mail),
             ("MESSAGE", &message),
-            ("bbs", &board),
-            ("key", &thread_id),
+            ("site", &site),
+            ("bbs", board_name),
             ("time", &time),
-            ("submit", "書き込む"),
-            ("oekaki_thread1", ""),
+            ("cert", &cert),
         ];
+        let form_data = encoder::formvalue_from_vec(form)?;
 
         let proxy = if self.proxy {
             let config = Config::load().await.context("failed to load config")?;
@@ -126,11 +123,8 @@ impl Sender {
             None => client.build().context("failed to build client")?,
         };
 
-        let form_data = encoder::formvalue_from_vec(form)?;
-
         let res = client
             .post(&post_url)
-            // .header(COOKIE, &cookie)
             .body(form_data.clone())
             .send()
             .await
@@ -165,6 +159,41 @@ impl Sender {
         let now = now.duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
         now as f64
     }
+
+    pub async fn get_cert_and_site(&self) -> (String, String) {
+        let mut cert = String::new();
+        let mut site = String::new();
+        let url = format!("{}/#new_thread", &self.url);
+        let res = Reciever::get(&url).await.unwrap().html();
+        for l in res.lines().rev() {
+            if l.starts_with("<input type=\"hidden\" name=\"bbs\"") {
+                let i = l.split("<input type=\"hidden\" ").collect::<Vec<_>>();
+                for cc in i {
+                    if cc.contains("name=\"") {
+                        let cc = cc.split("\"").collect::<Vec<_>>();
+                        if cc[1] == "cert" {
+                            cert = cc[3].to_string();
+                        }
+                    }
+                }
+            }
+            if l.starts_with("<input type=\"hidden\" name=\"site\"") {
+                let i = l.split("<input type=\"hidden\" ").collect::<Vec<_>>();
+                for cc in i {
+                    if cc.contains("name=\"") {
+                        let cc = cc.split("\"").collect::<Vec<_>>();
+                        if cc[1] == "site" {
+                            site = cc[3].to_string();
+                        }
+                    }
+                }
+            }
+            if l.starts_with("<textarea") {
+                break;
+            }
+        }
+        (cert, site)
+    }
 }
 
 #[cfg(test)]
@@ -178,39 +207,16 @@ mod tests {
     #[tokio::test]
     async fn test_send() {
         let url = "https://mi.5ch.net/news4vip/";
-        let threads = Board::new(url.to_string()).load().await.unwrap();
-        let thread = &*threads.get(10).unwrap();
-        let message = "てすと";
-        let sender = Sender::new(thread)
-            .login(true)
-            .send(message, None, None)
+        let sender = Sender::new(url.to_string())
+            .send("てすと", None, None, "てすと")
             .await
             .unwrap();
-        println!("{}", sender);
-
-        // let res = sender.send("test", None, None).await.unwrap();
-        // assert_eq!(res, "write success");
     }
 
     #[tokio::test]
-    async fn send_proxy() {
+    async fn test_get_cert() {
         let url = "https://mi.5ch.net/news4vip/";
-        let threads = Board::new(url.to_string()).load().await.unwrap();
-        let thread = &*threads.get(10).unwrap();
-        println!("{:?}", thread);
-        let message = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        let sender = Sender::new(thread)
-            // .login(true)
-            .proxy(true)
-            .send(&message, None, None)
-            .await
-            .unwrap();
-        println!("---------");
-        println!("writed at: {}", Local::now().format("%m-%d %H:%M:%S"));
-        println!("title: {}", thread.title);
-        println!("URL: {}", sender);
-
-        // let res = sender.send("test", None, None).await.unwrap();
-        // assert_eq!(res, "write success");
+        let sender = Sender::new(url.to_string()).get_cert_and_site().await;
+        println!("{:?}", sender);
     }
 }
