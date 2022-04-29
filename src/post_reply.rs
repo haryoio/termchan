@@ -6,10 +6,7 @@ use crate::{
     patterns::{get_error_message, get_url_write_success},
 };
 use anyhow::Context;
-use reqwest::{
-    header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
-    Url,
-};
+use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
 use crate::encoder;
 
@@ -37,6 +34,10 @@ impl Sender {
 
     pub fn proxy(&mut self, enable: bool) -> &Self {
         self.proxy = enable;
+        self
+    }
+    pub fn user_agent(&mut self, user_agent: &str) -> &Self {
+        self.user_agent = user_agent.to_string();
         self
     }
 
@@ -157,7 +158,7 @@ impl Sender {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Date, Duration, Local, Utc};
+    use chrono::Local;
 
     use crate::controller::board::Board;
 

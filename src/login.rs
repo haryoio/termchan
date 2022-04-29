@@ -80,7 +80,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_do_login() -> anyhow::Result<()> {
-        let session = Login::do_login().await.unwrap();
+        let _ = Login::do_login().await.unwrap();
         let cookie = CookieStore::load_raw().await.unwrap();
         println!("{:?}", cookie);
         // let (name, value) = Login::to_tuple(&Some(session.to_owned()));

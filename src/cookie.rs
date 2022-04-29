@@ -1,14 +1,12 @@
 use anyhow::Context;
-use cookie::Cookie;
 use cookie_store;
 use reqwest_cookie_store::CookieStoreMutex;
-use serde::{Deserialize, Serialize};
 use serde_json::{Error, Value};
+use std::sync::Arc;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, Read},
 };
-use std::{io::Write, sync::Arc};
 
 use crate::configs::config::Config;
 
@@ -90,18 +88,6 @@ impl CookieStore {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct CookieJson {
-    raw_cookie: String,
-    path: Vec<(String, bool)>,
-    domain: Domain,
-    expires: Option<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Domain {
-    Suffix: String,
-}
 #[cfg(test)]
 mod tests {
     use crate::login::Login;

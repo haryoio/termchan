@@ -1,16 +1,12 @@
 use crate::{
     configs::config::Config,
-    controller::thread::Thread,
     cookie::CookieStore,
     login::Login,
     patterns::{get_error_message, get_url_write_success},
     receiver::Reciever,
 };
 use anyhow::Context;
-use reqwest::{
-    header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
-    Url,
-};
+use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
 use crate::encoder;
 
@@ -40,8 +36,11 @@ impl Sender {
         self.proxy = enable;
         self
     }
+    pub fn user_agent(&mut self, user_agent: &str) -> &Self {
+        self.user_agent = user_agent.to_string();
+        self
+    }
 
-    // https://<host>/test/read.cgi/<board_key>/<thread_id>/
     pub async fn send(
         &self,
         title: &str,
@@ -198,9 +197,6 @@ impl Sender {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Date, Duration, Local, Utc};
-
-    use crate::controller::board::Board;
 
     use super::*;
 
@@ -211,6 +207,7 @@ mod tests {
             .send("てすと", None, None, "てすと")
             .await
             .unwrap();
+        println!("{}", sender);
     }
 
     #[tokio::test]

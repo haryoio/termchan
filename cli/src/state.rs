@@ -1,6 +1,5 @@
 use std::{cell::Cell, collections::HashMap};
 
-use futures::io::Repeat;
 use termchan::controller::{
     board::BoardSettingType,
     menu::{BbsCategories, BoardUrl},

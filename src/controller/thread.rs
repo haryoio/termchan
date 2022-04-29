@@ -1,4 +1,4 @@
-use std::{cell::Cell, fmt::Display, pin::Pin};
+use std::{fmt::Display, pin::Pin};
 
 use anyhow::Context;
 use chrono::{DateTime, TimeZone, Utc};
