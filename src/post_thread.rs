@@ -1,18 +1,15 @@
 use crate::{
     configs::config::Config,
-    controller::thread::Thread,
-    cookie::CookieStore,
     login::Login,
-    patterns::{get_error_message, get_url_write_success},
-    receiver::Reciever,
+    utils::{
+        cookie::CookieStore,
+        encoder,
+        patterns::{get_error_message, get_url_write_success},
+        receiver::Reciever,
+    },
 };
 use anyhow::Context;
-use reqwest::{
-    header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
-    Url,
-};
-
-use crate::encoder;
+use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
 pub struct Sender {
     url: String,
@@ -40,8 +37,11 @@ impl Sender {
         self.proxy = enable;
         self
     }
+    pub fn user_agent(&mut self, user_agent: &str) -> &Self {
+        self.user_agent = user_agent.to_string();
+        self
+    }
 
-    // https://<host>/test/read.cgi/<board_key>/<thread_id>/
     pub async fn send(
         &self,
         title: &str,
@@ -198,24 +198,22 @@ impl Sender {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Date, Duration, Local, Utc};
-
-    use crate::controller::board::Board;
 
     use super::*;
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let sender = Sender::new(url.to_string())
             .send("てすと", None, None, "てすと")
             .await
             .unwrap();
+        println!("{}", sender);
     }
 
     #[tokio::test]
     async fn test_get_cert() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let sender = Sender::new(url.to_string()).get_cert_and_site().await;
         println!("{:?}", sender);
     }

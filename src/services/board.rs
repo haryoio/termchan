@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use anyhow::Context;
 use reqwest::Url;
 
-use crate::{controller::thread::Thread, patterns, receiver::Reciever};
+use crate::utils::{patterns, receiver::Reciever};
+
+use super::thread::Thread;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 #[allow(non_camel_case_types)]
@@ -113,6 +115,7 @@ impl Board {
 
     pub async fn load_settings(&self) -> anyhow::Result<HashMap<BoardSettingType, Option<String>>> {
         let url = format!("{}{}", self.url, "/SETTING.TXT");
+        println!("{}", url);
         let html = Reciever::get(&url).await?.html();
 
         anyhow::Ok(normalize_board_setting(html.as_str())?)
@@ -125,7 +128,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_substr_to_subback_url() {
-        let url = "https://termchan.net/termchan/subback.html";
+        let url = "https://mi.termchan.net/termchan/subback.html";
         let board = Board::new(url.to_string());
 
         assert_eq!(board.url, "https://termchan.net/termchan");
@@ -133,7 +136,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_board_load() {
-        let url = "https://mi.termch.net/news4vip";
+        let url = "https://mi.termchan.net/news4vip";
         let board = Board::new(url.to_string());
         println!("{:?}", board.load().await.unwrap());
 
@@ -143,7 +146,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_setting_load() {
-        let url = "https://mi.termch.net/news4vip/subback.html";
+        let url = "https://mi.termchan.net/news4vip";
         let board = Board::new(url.to_string());
         let resp = board.load_settings().await.unwrap();
         println!("{:?}", resp);

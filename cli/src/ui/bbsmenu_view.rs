@@ -1,17 +1,11 @@
-use crate::state::{InputMode, Pane, TabItem};
-use crossterm::{cursor, execute, terminal};
-use futures::executor::block_on;
-use std::{
-    io::{stdout, Write},
-    vec,
-};
+use crate::state::Pane;
 
 use crate::state::State;
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
+    text::Span,
     widgets::{Block, BorderType, Borders, List, ListItem},
     Frame,
 };

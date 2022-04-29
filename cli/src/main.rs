@@ -6,7 +6,7 @@ use cli::{
 };
 use futures::executor::block_on;
 use std::{
-    io::{self, Write},
+    io::{self},
     time::Duration,
     vec,
 };
@@ -14,20 +14,11 @@ use tokio::{sync::mpsc, time::Instant};
 
 use anyhow::Context;
 use cli::utils::Result;
-use crossterm::{
-    event::{self, Event as CEvent, KeyCode},
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
-use pprof;
+use crossterm::event::{self, Event as CEvent, KeyCode};
 use termchan::{
     configs::config::Config,
-    controller::{
-        board::Board,
-        menu::{BbsCategories, BbsMenu, BoardUrl},
-        reply::Reply,
-        thread::Thread as TCThread,
-    },
     post_reply::Sender,
+    services::{board::Board, menu::BbsMenu, reply::Reply, thread::Thread as TCThread},
 };
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -43,7 +34,7 @@ async fn main() -> Result<()> {
 
     // 設定を読み込み
     let config = Config::load();
-    let bbsmenu_url = match config.unwrap().bbsmenu.url.first() {
+    let bbsmenu_url = match config.await.unwrap().bbsmenu.url.first() {
         Some(url) => url.to_owned(),
         None => panic!("BBSMENU URLを設定してください。"),
     };
@@ -57,14 +48,6 @@ async fn main() -> Result<()> {
     state.threads.items = vec![TCThread::default()];
     state.thread.set_items(vec![Reply::default()]);
     state.history = vec![TabItem::Bbsmenu];
-
-    // TODO InputWidgetで置き換える
-    // let block = Block::default().borders(Borders::ALL).title("Input");
-    // let text = Text::from(Spans::from(Span::styled(
-    //     "input",
-    //     Style::default().fg(Color::Yellow),
-    // )));
-    // let para = Paragraph::new(text).block(block).wrap(Wrap { trim: false });
 
     let (tx, mut rx) = mpsc::channel(1);
     let tick_rate = Duration::from_millis(200);

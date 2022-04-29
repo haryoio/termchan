@@ -2,6 +2,9 @@
 name = "termchan"
 version = "0.2.0"
 edition = "2021"
+authors = ["Haryoiro"]
+description = "ターミナルで動く軽量2chクライアント"
+license = "Apache-2.0"
 
 [workspace]
 members = ["cli"]
@@ -11,8 +14,6 @@ anyhow = "1.0.56"
 chrono = "0.4.19"
 chrono-tz = "0.6.1"
 cookie = "0.16.0"
-# reqwest_cookie_storeがcookie_store 0.15.1以下にしか対応していない
-# 対応までは0.15.1以下のバージョンを使用する
 cookie_store = "0.16.0"
 dirs = "4.0.0"
 encoding_rs = "0.8.30"

@@ -1,7 +1,7 @@
 use anyhow::Context;
 use regex::Regex;
 
-use crate::receiver::Reciever;
+use crate::utils::receiver::Reciever;
 
 fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
     let html = Regex::new(r#" TARGET=(.*?)>"#)
@@ -140,7 +140,7 @@ mod tests {
 
     // #[tokio::test]
     // async fn test_get_5ch_bbsmenu() {
-    //     let url = "https://menu.5ch.net/bbsmenu.html";
+    //     let url = "https://menu.termchan.net/bbsmenu.html";
     //     let bbsmenu = BbsMenu::new(url.to_string());
     //     let result = bbsmenu.load().await;
     //     assert!(result.is_ok());

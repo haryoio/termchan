@@ -1,17 +1,15 @@
 use crate::{
     configs::config::Config,
-    controller::thread::Thread,
-    cookie::CookieStore,
     login::Login,
-    patterns::{get_error_message, get_url_write_success},
+    services::thread::Thread,
+    utils::{
+        cookie::CookieStore,
+        encoder,
+        patterns::{get_error_message, get_url_write_success},
+    },
 };
 use anyhow::Context;
-use reqwest::{
-    header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER},
-    Url,
-};
-
-use crate::encoder;
+use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
 
 pub struct Sender {
     thread: Thread,
@@ -37,6 +35,11 @@ impl Sender {
 
     pub fn proxy(&mut self, enable: bool) -> &Self {
         self.proxy = enable;
+        self
+    }
+
+    pub fn user_agent(&mut self, user_agent: &str) -> &Self {
+        self.user_agent = user_agent.to_string();
         self
     }
 
@@ -157,15 +160,15 @@ impl Sender {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Date, Duration, Local, Utc};
+    use chrono::Local;
 
-    use crate::controller::board::Board;
+    use crate::services::board::Board;
 
     use super::*;
 
     #[tokio::test]
     async fn test_send() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://mi.termchan.net/news4vip/";
         let threads = Board::new(url.to_string()).load().await.unwrap();
         let thread = &*threads.get(10).unwrap();
         let message = "てすと";
@@ -188,7 +191,6 @@ mod tests {
         println!("{:?}", thread);
         let message = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         let sender = Sender::new(thread)
-            // .login(true)
             .proxy(true)
             .send(&message, None, None)
             .await

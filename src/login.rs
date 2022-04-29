@@ -4,7 +4,10 @@ use anyhow::Context;
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
 use reqwest_cookie_store::CookieStoreMutex;
 
-use crate::{configs::config::Config, cookie::CookieStore, encoder};
+use crate::{
+    configs::config::Config,
+    utils::{cookie::CookieStore, encoder},
+};
 
 pub struct Login {
     url: String,
@@ -80,7 +83,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_do_login() -> anyhow::Result<()> {
-        let session = Login::do_login().await.unwrap();
+        let _ = Login::do_login().await.unwrap();
         let cookie = CookieStore::load_raw().await.unwrap();
         println!("{:?}", cookie);
         // let (name, value) = Login::to_tuple(&Some(session.to_owned()));

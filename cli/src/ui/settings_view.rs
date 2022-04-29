@@ -1,6 +1,6 @@
 use crate::state::State;
 use tui::{
-    backend::{Backend, CrosstermBackend},
+    backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     Frame,
 };

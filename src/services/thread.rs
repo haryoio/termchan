@@ -1,10 +1,12 @@
-use std::{cell::Cell, fmt::Display, pin::Pin};
+use std::{fmt::Display, pin::Pin};
 
 use anyhow::Context;
 use chrono::{DateTime, TimeZone, Utc};
 use chrono_tz::{Asia::Tokyo, Tz};
 
-use crate::{controller::reply::Reply, patterns, receiver::Reciever};
+use crate::utils::{patterns, receiver::Reciever};
+
+use super::reply::Reply;
 
 fn normalize_thread(html: &str) -> anyhow::Result<Vec<Reply>> {
     let mut replies = Vec::new();
