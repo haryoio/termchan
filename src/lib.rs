@@ -9,7 +9,6 @@ pub mod configs {
 }
 pub mod cookie;
 pub mod encoder;
-pub mod error;
 pub mod login;
 pub mod patterns;
 pub mod receiver;
