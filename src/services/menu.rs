@@ -1,7 +1,7 @@
 use anyhow::Context;
 use regex::Regex;
 
-use crate::receiver::Reciever;
+use crate::utils::receiver::Reciever;
 
 fn normalize_bbsmenu(html: &mut String) -> anyhow::Result<Vec<BbsCategories>> {
     let html = Regex::new(r#" TARGET=(.*?)>"#)

@@ -1,10 +1,10 @@
 use anyhow::Context;
 use reqwest::header::{HeaderName, COOKIE, HOST};
 
-use crate::encoder;
+use super::encoder;
 
 pub struct Reciever {
-    url:  String,
+    url: String,
     html: String,
 }
 

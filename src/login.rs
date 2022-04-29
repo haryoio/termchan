@@ -4,7 +4,10 @@ use anyhow::Context;
 use reqwest::header::{CONTENT_TYPE, COOKIE, HOST, REFERER};
 use reqwest_cookie_store::CookieStoreMutex;
 
-use crate::{configs::config::Config, cookie::CookieStore, encoder};
+use crate::{
+    configs::config::Config,
+    utils::{cookie::CookieStore, encoder},
+};
 
 pub struct Login {
     url: String,

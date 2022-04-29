@@ -1,14 +1,15 @@
 use crate::{
     configs::config::Config,
-    cookie::CookieStore,
     login::Login,
-    patterns::{get_error_message, get_url_write_success},
-    receiver::Reciever,
+    utils::{
+        cookie::CookieStore,
+        encoder,
+        patterns::{get_error_message, get_url_write_success},
+        receiver::Reciever,
+    },
 };
 use anyhow::Context;
 use reqwest::header::{HeaderName, CONTENT_TYPE, COOKIE, HOST, ORIGIN, REFERER};
-
-use crate::encoder;
 
 pub struct Sender {
     url: String,

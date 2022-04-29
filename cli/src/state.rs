@@ -1,6 +1,6 @@
 use std::{cell::Cell, collections::HashMap};
 
-use termchan::controller::{
+use termchan::services::{
     board::BoardSettingType,
     menu::{BbsCategories, BoardUrl},
     reply::Reply,

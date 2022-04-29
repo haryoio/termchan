@@ -17,8 +17,8 @@ use cli::utils::Result;
 use crossterm::event::{self, Event as CEvent, KeyCode};
 use termchan::{
     configs::config::Config,
-    controller::{board::Board, menu::BbsMenu, reply::Reply, thread::Thread as TCThread},
     post_reply::Sender,
+    services::{board::Board, menu::BbsMenu, reply::Reply, thread::Thread as TCThread},
 };
 #[tokio::main]
 async fn main() -> Result<()> {

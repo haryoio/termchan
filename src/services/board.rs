@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use anyhow::Context;
 use reqwest::Url;
 
-use crate::{controller::thread::Thread, patterns, receiver::Reciever};
+use crate::utils::{patterns, receiver::Reciever};
+
+use super::thread::Thread;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 #[allow(non_camel_case_types)]

@@ -1,20 +1,20 @@
 bbsmenu:
     url:
         - https://menu.2ch.sc/bbsmenu.html
-# liked_board_path:
-#     custom: false
-#     path: $HOME/.config/termchan/liked.json
+liked_board_path:
+    custom: false
+    path: $HOME/.config/termchan/liked.json
 
-# login:
-#     url: http
-#     email: email@example.com
-#     password: password
+login:
+    url: http
+    email: email@example.com
+    password: password
 
-# post:
-#     use_login: false
-#     repost_interval: 0
+post:
+    use_login: false
+    repost_interval: 0
 
-# proxy:
-#     proxy_scheme: your.proxy.domain:1234
-#     username: user
-#     password: password
+proxy:
+    url: https://your.proxy.domain:1234
+    username: user
+    password: password
