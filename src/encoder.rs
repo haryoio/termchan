@@ -9,6 +9,7 @@ use reqwest::header::{
     ACCEPT_ENCODING,
     ACCEPT_LANGUAGE,
     CACHE_CONTROL,
+    CONNECTION,
     CONTENT_TYPE,
     UPGRADE_INSECURE_REQUESTS,
     USER_AGENT,
@@ -33,16 +34,21 @@ pub fn cookie_from_vec(map: Vec<(&str, &str)>) -> String {
 }
 
 pub fn base_headers() -> Vec<(HeaderName, String)> {
-    let map = vec![(
-        ACCEPT,
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
-    ),
-    (ACCEPT_ENCODING, "gzip, deflate, br"),
-    (ACCEPT_LANGUAGE, "ja,en-US;q=0.9,en;q=0.8"),
-    (CACHE_CONTROL, "max-age=0"),
-    (CONTENT_TYPE, "application/x-www-form-urlencoded"),
-    (UPGRADE_INSECURE_REQUESTS, "1"),
-    (USER_AGENT, "Mozilla/5.0 (X11; Linux x86_64; rv:98.0) Gecko/20100101 Firefox/98.0")];
+    let map = vec![
+        (
+            ACCEPT,
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        ),
+        (ACCEPT_ENCODING, "gzip, deflate, br"),
+        (ACCEPT_LANGUAGE, "ja,en-US;q=0.7,en;q=0.3"),
+        (CONTENT_TYPE, "application/x-www-form-urlencoded"),
+        (UPGRADE_INSECURE_REQUESTS, "1"),
+        (
+            USER_AGENT,
+            "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0",
+        ),
+        (CONNECTION, "keep-alive"),
+    ];
     let map = map.into_iter().map(|(k, v)| (k, v.to_string())).collect();
     map
 }
