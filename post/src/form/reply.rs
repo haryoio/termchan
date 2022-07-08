@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::encode::postable_string;
-use crate::{url::reply::BoardParams, util::time::unix_now_time};
+use crate::{url::reply::ThreadParams, util::time::unix_now_time};
 
 pub struct ReplyFormData {
     name:           String,
@@ -19,7 +19,7 @@ impl ReplyFormData {
         message: &str,
         email: Option<&str>,
         name: Option<&str>,
-        board_params: &BoardParams,
+        thread_params: &ThreadParams,
     ) -> Self {
         let time = unix_now_time().to_string();
         let name = name.unwrap_or("").to_string();
@@ -28,8 +28,8 @@ impl ReplyFormData {
             name,
             mail,
             message: message.to_string(),
-            bbs: board_params.board_key.to_string(),
-            key: board_params.thread_id.to_string(),
+            bbs: thread_params.board_key.to_string(),
+            key: thread_params.thread_id.to_string(),
             time,
             submit: "書き込む".to_string(),
             oekaki_thread1: "".to_string(),

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use encoding_rs;
 
-use crate::{url::reply::BoardParams, util::time::unix_now_time};
+use crate::{url::reply::ThreadParams, util::time::unix_now_time};
 
 pub fn postable_string(s: &str) -> String {
     let (message, ..) = encoding_rs::SHIFT_JIS.encode(s);

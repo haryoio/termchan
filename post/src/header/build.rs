@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use reqwest::header::HeaderMap;
 
 use super::cookie::Cookies;
-use crate::url::reply::BoardParams;
+use crate::url::{reply::ThreadParams, url::URL};
 
-pub fn generate_header<'a>(board_params: &'a BoardParams, cookie: Cookies) -> HeaderMap {
+pub fn generate_header<'a>(board_params: impl URL, cookie: Cookies) -> HeaderMap {
     let mut header = HashMap::new();
-    header.insert("Host".to_string(), board_params.host.to_string());
+    header.insert("Host".to_string(), board_params.host().to_string());
     header.insert(
         "User-Agent".to_string(),
-        "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0".to_string(),
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36".to_string(),
     );
     header.insert(
         "Accept".to_string(),
@@ -29,15 +29,21 @@ pub fn generate_header<'a>(board_params: &'a BoardParams, cookie: Cookies) -> He
         "Content-Type".to_string(),
         "application/x-www-form-urlencoded".to_string(),
     );
-    header.insert("Origin".to_string(), board_params.origin().to_string());
-    header.insert("Connection".to_string(), "keep-alive".to_string());
-    header.insert("Referer".to_string(), board_params.referer().to_string());
-    header.insert("Upgrade-Insecure-Requests".to_string(), "1".to_string());
-    header.insert("Sec-Fetch-Dest".to_string(), "document".to_string());
-    header.insert("Sec-Fetch-Mode".to_string(), "navigate".to_string());
-    header.insert("Sec-Fetch-Site".to_string(), "same-origin".to_string());
-    header.insert("Sec-Fetch-User".to_string(), "?1".to_string());
-    header.insert("Cookie".to_string(), cookie.to_string());
+    header.insert("origin".to_string(), board_params.origin().to_string());
+    header.insert("connection".to_string(), "keep-alive".to_string());
+    header.insert("referer".to_string(), board_params.referer().to_string());
+    header.insert("upgrade-insecure-requests".to_string(), "1".to_string());
+    header.insert("sec-fetch-dest".to_string(), "document".to_string());
+    header.insert("sec-fetch-mode".to_string(), "navigate".to_string());
+    header.insert("sec-fetch-site".to_string(), "same-origin".to_string());
+    header.insert("sec-fetch-user".to_string(), "?1".to_string());
+    header.insert("cookie".to_string(), cookie.to_string());
+    header.insert(
+        "sec-ch-ua".to_string(),
+        r#" ".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103""#.to_string(),
+    );
+    header.insert("sec-ch-ua-mobile".to_string(), "?0".to_string());
+    header.insert("sec-ch-ua-platform".to_string(), "macOS".to_string());
 
     let headers: HeaderMap = (&header).try_into().expect("valid headers");
     headers
