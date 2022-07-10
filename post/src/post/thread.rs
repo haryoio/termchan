@@ -8,10 +8,10 @@ use termchan::{
 };
 
 use crate::{
-    access::get::board_cert::board_cert,
-    form::{reply::ReplyFormData, thread::ThreadFormData},
-    header::{self, build::generate_header, cookie::Cookies},
-    url::{reply::ThreadParams, thread::BoardParams, url::URL},
+    get::board_cert::board_cert,
+    header::{build::post_header, cookie::Cookies},
+    post::form::thread::ThreadFormData,
+    url::{thread::BoardParams, url::URL},
     util::error::get_error,
 };
 
@@ -32,7 +32,7 @@ pub async fn create_thread(
     cookies.add("yuki", "akari");
     cookies.add("READJS", "\"off\"");
 
-    let header = generate_header(board_params.clone(), cookies);
+    let header = post_header(board_params.clone(), cookies);
 
     let res = client
         .post(board_params.build_post())

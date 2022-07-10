@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use super::encode::postable_string;
 use crate::{
     url::{reply::ThreadParams, thread::BoardParams},
-    util::time::unix_now_time,
+    util::{encoding::utf8_to_sjis_string, time::unix_now_time},
 };
 
 pub struct ThreadFormData {
@@ -56,7 +55,7 @@ impl ThreadFormData {
         form.insert("time", &self.time);
         form.insert("cert", &self.cert);
         form.iter_mut()
-            .map(|(k, v)| (*k, postable_string(v)))
+            .map(|(k, v)| (*k, utf8_to_sjis_string(v)))
             .collect::<HashMap<_, _>>()
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))

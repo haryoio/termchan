@@ -144,8 +144,6 @@ impl Bbsmenu {
 
 #[cfg(test)]
 mod tests {
-    use termchan::configs::bbsmenu;
-
     use super::*;
 
     #[tokio::test]

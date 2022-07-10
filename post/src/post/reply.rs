@@ -1,15 +1,9 @@
-use std::{collections::HashMap, hash::Hash};
-
 use anyhow;
 use reqwest;
-use termchan::{
-    configs::board,
-    controller::{board::Board, thread::Thread},
-};
 
 use crate::{
-    form::reply::ReplyFormData,
-    header::{self, build::generate_header, cookie::Cookies},
+    header::{build::post_header, cookie::Cookies},
+    post::form::reply::ReplyFormData,
     url::{reply::ThreadParams, url::URL},
 };
 
@@ -28,7 +22,7 @@ pub async fn post_reply(
     cookies.add("yuki", "akari");
     cookies.add("READJS", "\"off\"");
 
-    let header = generate_header(thread_params.clone(), cookies);
+    let header = post_header(thread_params.clone(), cookies);
 
     // 一度目書き込み
     let res = client
@@ -61,6 +55,8 @@ pub async fn post_reply(
 
 #[cfg(test)]
 mod tests {
+    use termchan::controller::board::Board;
+
     use super::*;
 
     #[tokio::test]

@@ -12,20 +12,19 @@ pub mod header {
     pub mod build;
     pub mod cookie;
 }
-pub mod form {
-    pub mod encode;
-    pub mod reply;
+pub mod get {
+    pub mod bbsmenu;
+    pub mod board;
+    pub mod board_cert;
     pub mod thread;
 }
-pub mod access {
-    pub mod get {
-        pub mod bbsmenu;
-        pub mod board_cert;
-    }
-    pub mod post {
+pub mod post {
+    pub mod reply;
+    pub mod reply_with_login;
+    pub mod thread;
+    pub mod thread_with_login;
+    pub mod form {
         pub mod reply;
-        pub mod reply_with_login;
         pub mod thread;
-        pub mod thread_with_login;
     }
 }

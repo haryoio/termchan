@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
-use super::encode::postable_string;
-use crate::{url::reply::ThreadParams, util::time::unix_now_time};
+use crate::{
+    url::reply::ThreadParams,
+    util::{encoding::utf8_to_sjis_string, time::unix_now_time},
+};
 
 pub struct ReplyFormData {
     name:           String,
@@ -47,7 +49,7 @@ impl ReplyFormData {
         form.insert("submit", &self.submit);
         form.insert("oekaki_thread1", &self.oekaki_thread1);
         form.iter_mut()
-            .map(|(k, v)| (*k, postable_string(v)))
+            .map(|(k, v)| (*k, utf8_to_sjis_string(v)))
             .collect::<HashMap<_, _>>()
             .iter()
             .map(|(k, v)| format!("{}={}", k, v))
