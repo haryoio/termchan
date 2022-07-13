@@ -14,16 +14,3 @@ pub async fn board_cert(url: String) -> anyhow::Result<String> {
         .to_string();
     Ok(cert.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_board_cert() {
-        let res = board_cert("https://mi.5ch.net/news4vip/".to_string())
-            .await
-            .unwrap();
-        println!("{}", res);
-    }
-}

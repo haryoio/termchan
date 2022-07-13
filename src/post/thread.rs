@@ -2,10 +2,6 @@ use std::{collections::HashMap, error, hash::Hash};
 
 use anyhow::{self, anyhow as any, Error, Ok};
 use reqwest;
-use termchan::{
-    configs::board,
-    controller::{board::Board, thread::Thread},
-};
 
 use crate::{
     get::board_cert::board_cert,
@@ -46,17 +42,4 @@ pub async fn create_thread(
         Err(err) => Err(any!(err)),
         _ => Ok(body.to_string()),
     };
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_create_thread() {
-        let res = create_thread("https://mi.5ch.net/news4vip/", "test", "test", None, None)
-            .await
-            .unwrap();
-        println!("{}", res);
-    }
 }

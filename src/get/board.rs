@@ -3,17 +3,14 @@ use std::str::Bytes;
 use crate::util::encoding::sjis_to_utf8;
 
 // https://mi.5ch.net/news4vip/subject.txt
-#[derive(Debug)]
-pub struct ThreadSubjectList {
-    pub board_name:      String,
-    pub thread_subjects: Vec<ThreadSubject>,
-}
+
 #[derive(Debug)]
 pub struct ThreadSubject {
-    pub name:  String,
-    pub id:    String,
-    pub url:   String,
-    pub count: i32,
+    pub board_name: String,
+    pub name:       String,
+    pub id:         String,
+    pub url:        String,
+    pub count:      i32,
 }
 
 #[derive(Debug)]
@@ -38,7 +35,7 @@ impl Board {
             name,
         }
     }
-    async fn load(&self) -> ThreadSubjectList {
+    async fn get(&self) -> Vec<ThreadSubject> {
         let byte = reqwest::get(&self.url)
             .await
             .unwrap()
@@ -54,7 +51,7 @@ impl Board {
     }
 }
 
-fn parse_board_dat(dat: &str, board: &Board) -> ThreadSubjectList {
+fn parse_board_dat(dat: &str, board: &Board) -> Vec<ThreadSubject> {
     let mut thread_subjects: Vec<ThreadSubject> = Vec::new();
     let mut lines = dat.split('\n');
     loop {
@@ -75,29 +72,12 @@ fn parse_board_dat(dat: &str, board: &Board) -> ThreadSubjectList {
         );
         let count = i32::from_str_radix(&right[1][..right.len() - 1], 10).unwrap();
         thread_subjects.push(ThreadSubject {
+            board_name: board.name.clone(),
             id: thread_id,
             name: subject,
             url,
             count,
         });
     }
-    ThreadSubjectList {
-        board_name: board.name.to_string(),
-        thread_subjects,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_parse_board_dat() {
-        let dat = "https://mi.5ch.net/news4vip/subject.txt";
-        let board = Board::new(dat.to_string());
-        let subjects = board.load().await;
-
-        assert_eq!(board.url, "https://mi.5ch.net/news4vip/subject.txt");
-    }
+    thread_subjects
 }

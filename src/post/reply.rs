@@ -52,23 +52,3 @@ pub async fn post_reply(
 
     Ok(body.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use termchan::controller::board::Board;
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_post_reply() {
-        let url = "https://mi.5ch.net/news4vip/";
-        let board = Board::new(url.to_string());
-        let thread = board.load().await.unwrap();
-        let ten = thread.get(10).unwrap();
-        let th_url = ten.url().clone();
-        let message = "test";
-
-        let res = post_reply(&th_url, &message, None, None).await.unwrap();
-        println!("{}", res);
-    }
-}

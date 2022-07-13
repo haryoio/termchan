@@ -1,5 +1,3 @@
-use termchan::controller::board::Board;
-
 use super::url::URL;
 
 #[derive(Debug, Clone)]

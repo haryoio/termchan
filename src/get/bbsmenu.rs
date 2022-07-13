@@ -1,45 +1,42 @@
 use regex::Regex;
 use serde_json::{json, Value};
 
-/*
-menu.json
-!のついているものは使用しない。
-{
-    !descriptoin: bbsmenuの詳細,
-    !last_modify: 最終更新日時 unixtime,
-    !last_modify_string: 最終更新日,
-    menu_list: [
-        {
-            category_name: "地震", // カテゴリ名
-            !category_number: "1", // カテゴリ番号
-            !category_total: 5     // カテゴリ内の板数
-            category_content: [   // カテゴリ内の板一覧
-                {
-                    board_name: String, // 板名
-                    !category: usize,    // カテゴリ番号
-                    !category_name: String,  // カテゴリ名
-                    !category_order: usize,  // カテゴリ内での順番
-                    !directory_name: String  // 板ディレクトリ名
-                    url: String,       // 板URL
-                }
-            ]
-        }
-    ]
+pub struct Bbsmenu {
+    url: String,
 }
-*/
+impl Bbsmenu {
+    pub fn new(url: String) -> Self {
+        Self { url }
+    }
+
+    pub async fn get(&self) -> anyhow::Result<BbsmenuSchema> {
+        let mut url = self.url.clone();
+        let is_json = url.contains("5ch") || url.ends_with(".json");
+        if is_json {
+            url = url.replace(".html", ".json");
+        }
+        let html = reqwest::get(&url).await?.text().await?;
+        if is_json {
+            return Ok(parse_bbsmenu_json(&html));
+        } else {
+            return Ok(parse_bbsmenu_html(&html));
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct BbsmenuSchema {
-    menu_list: Vec<CategoryItem>,
+    pub menu_list: Vec<CategoryItem>,
 }
 #[derive(Debug, Clone)]
 pub struct CategoryItem {
-    category_name:    String,
-    category_content: Vec<CategoryContent>,
+    pub category_name:    String,
+    pub category_content: Vec<CategoryContent>,
 }
 #[derive(Debug, Clone)]
 pub struct CategoryContent {
-    board_name: String,
-    url:        String,
+    pub board_name: String,
+    pub url:        String,
 }
 
 fn parse_bbsmenu_json(json_str: &str) -> BbsmenuSchema {
@@ -117,43 +114,4 @@ fn parse_bbsmenu_html(html_str: &str) -> BbsmenuSchema {
         }
     }
     BbsmenuSchema { menu_list }
-}
-
-pub struct Bbsmenu {
-    url: String,
-}
-impl Bbsmenu {
-    pub fn new(url: String) -> Self {
-        Self { url }
-    }
-
-    pub async fn load(&self) -> anyhow::Result<BbsmenuSchema> {
-        let mut url = self.url.clone();
-        let is_json = url.contains("5ch") || url.ends_with(".json");
-        if is_json {
-            url = url.replace(".html", ".json");
-        }
-        let html = reqwest::get(&url).await?.text().await?;
-        if is_json {
-            return Ok(parse_bbsmenu_json(&html));
-        } else {
-            return Ok(parse_bbsmenu_html(&html));
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_bbsmenu() {
-        let url = "https://menu.5ch.net/bbsmenu.json".to_string();
-        let bbsmenu = Bbsmenu::new(url).load().await;
-        let url = "https://menu.5ch.net/bbsmenu.html".to_string();
-        let bbsmenu = Bbsmenu::new(url).load().await;
-        let url = "https://menu.2ch.sc/bbsmenu.html".to_string();
-        let bbsmenu = Bbsmenu::new(url).load().await;
-        println!("{:?}", bbsmenu);
-    }
 }
