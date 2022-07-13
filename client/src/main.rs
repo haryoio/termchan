@@ -54,27 +54,3 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), B
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn run_test() -> Result<(), Box<dyn Error>> {
-        // setup terminal
-        let stdout = io::stdout().into_raw_mode()?;
-        let stdout = MouseTerminal::from(stdout);
-        let stdout = AlternateScreen::from(stdout);
-        let backend = TermionBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
-
-        let mut app = App::new(200);
-        loop {
-            terminal.draw(|f| ui::draw_bbsmenu_tree(f, &mut app))?;
-            app.on_event();
-            if app.should_quit {
-                return Ok(());
-            }
-        }
-    }
-}

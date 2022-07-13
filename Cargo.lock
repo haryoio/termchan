@@ -1882,25 +1882,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "test"
-version = "0.1.0"
-dependencies = [
- "alt_serde_derive",
- "anyhow",
- "clap",
- "crossterm 0.24.0",
- "futures",
- "once_cell",
- "serde",
- "serde_json",
- "termchan",
- "termion",
- "tokio",
- "tui",
- "tui-tree-widget",
-]
-
-[[package]]
 name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2327,6 +2308,25 @@ checksum = "2fed94beee57daf8dd7d51f2b15dc2bcde92d7a72304cdf662a4371008b71b90"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "widget"
+version = "0.1.0"
+dependencies = [
+ "alt_serde_derive",
+ "anyhow",
+ "clap",
+ "crossterm 0.24.0",
+ "futures",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "termchan",
+ "termion",
+ "tokio",
+ "tui",
+ "tui-tree-widget",
 ]
 
 [[package]]
