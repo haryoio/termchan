@@ -1,5 +1,7 @@
 use std::str::Bytes;
 
+use eyre::{eyre, ContextCompat, Result, WrapErr};
+
 use crate::util::encoding::sjis_to_utf8;
 
 // https://mi.5ch.net/news4vip/subject.txt
@@ -22,26 +24,21 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(url: String) -> Self {
+    pub fn new(url: String) -> Result<Self> {
         let mut spurl = url.split("/");
-        let mut scheme = spurl.next().unwrap().to_string();
+        let mut scheme = spurl.next().context(eyre!(" {}", url.clone()))?.to_string();
         scheme.pop();
-        let host = spurl.next().unwrap().to_string();
-        let name = spurl.next().unwrap().to_string();
-        Self {
+        let host = spurl.next().context(eyre!(" {}", url.clone()))?.to_string();
+        let name = spurl.next().context(eyre!(" {}", url.clone()))?.to_string();
+        Ok(Self {
             url,
             scheme,
             host,
             name,
-        }
+        })
     }
-    pub async fn get(&self) -> Vec<ThreadSubject> {
-        let byte = reqwest::get(&self.url)
-            .await
-            .unwrap()
-            .bytes()
-            .await
-            .unwrap();
+    pub async fn get(&self) -> Result<Vec<ThreadSubject>> {
+        let byte = reqwest::get(&self.url).await?.bytes().await?;
         let html = String::from_utf8(byte.to_vec());
         let dat: String = match html {
             Ok(html) => html,
@@ -51,7 +48,7 @@ impl Board {
     }
 }
 
-fn parse_board_dat(dat: &str, board: &Board) -> Vec<ThreadSubject> {
+fn parse_board_dat(dat: &str, board: &Board) -> Result<Vec<ThreadSubject>> {
     let mut thread_subjects: Vec<ThreadSubject> = Vec::new();
     let mut lines = dat.split('\n');
     loop {
@@ -70,7 +67,7 @@ fn parse_board_dat(dat: &str, board: &Board) -> Vec<ThreadSubject> {
             "{}/{}/test/read.cgi/{}/{}",
             board.scheme, board.host, board.name, thread_id
         );
-        let count = i32::from_str_radix(&right[1][..right.len() - 1], 10).unwrap();
+        let count = i32::from_str_radix(&right[1][..right.len() - 1], 10)?;
         thread_subjects.push(ThreadSubject {
             board_name: board.name.clone(),
             id: thread_id,
@@ -79,5 +76,5 @@ fn parse_board_dat(dat: &str, board: &Board) -> Vec<ThreadSubject> {
             count,
         });
     }
-    thread_subjects
+    Ok(thread_subjects)
 }

@@ -1,3 +1,4 @@
+use eyre::{eyre, ContextCompat, Result, WrapErr};
 use regex::Regex;
 use serde_json::{json, Value};
 
@@ -5,11 +6,11 @@ pub struct Bbsmenu {
     url: String,
 }
 impl Bbsmenu {
-    pub fn new(url: String) -> Self {
-        Self { url }
+    pub fn new(url: String) -> Result<Self> {
+        Ok(Self { url })
     }
 
-    pub async fn get(&self) -> anyhow::Result<BbsmenuSchema> {
+    pub async fn get(&self) -> Result<BbsmenuSchema> {
         let mut url = self.url.clone();
         let is_json = url.contains("5ch") || url.ends_with(".json");
         if is_json {

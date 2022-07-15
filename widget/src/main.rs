@@ -137,10 +137,9 @@ pub async fn run(tick_rate: u64) -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     let mut app = App::new(tick_rate);
-    let menu = Bbsmenu::new("https://menu.5ch.net/bbsmenu.json".to_string())
+    let menu = Bbsmenu::new("https://menu.5ch.net/bbsmenu.json".to_string())?
         .get()
-        .await
-        .unwrap();
+        .await?;
     app.bbsmenu_state = StatefulBbsTree::from(menu);
 
     // create app and run it
