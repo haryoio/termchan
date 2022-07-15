@@ -5,24 +5,24 @@ use regex::Regex;
 
 use crate::{error::FormatError, header::build::get_header, url::reply::ThreadParams};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ThreadDetail {
-    title: String,
-    url:   String,
-    owner: String,
+    pub title: String,
+    pub url:   String,
+    pub owner: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ThreadPost {
     pub id:      String,
     pub name:    String,
     pub date:    String,
     pub message: String,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ThreadResponse {
-    detail: ThreadDetail,
-    posts:  Vec<ThreadPost>,
+    pub detail: ThreadDetail,
+    pub posts:  Vec<ThreadPost>,
 }
 
 pub struct Thread {
