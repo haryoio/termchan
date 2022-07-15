@@ -4,7 +4,7 @@ use eyre::{eyre, ContextCompat, Result, WrapErr};
 
 use crate::util::encoding::sjis_to_utf8;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ThreadSubject {
     pub board_name: String,
     pub name:       String,
