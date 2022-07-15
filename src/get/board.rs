@@ -4,8 +4,6 @@ use eyre::{eyre, ContextCompat, Result, WrapErr};
 
 use crate::util::encoding::sjis_to_utf8;
 
-// https://mi.5ch.net/news4vip/subject.txt
-
 #[derive(Debug)]
 pub struct ThreadSubject {
     pub board_name: String,
@@ -38,12 +36,16 @@ impl Board {
         })
     }
     pub async fn get(&self) -> Result<Vec<ThreadSubject>> {
-        let byte = reqwest::get(&self.url).await?.bytes().await?;
+        let byte = reqwest::get(format!("{}/subject.txt", &self.url))
+            .await?
+            .bytes()
+            .await?;
         let html = String::from_utf8(byte.to_vec());
         let dat: String = match html {
             Ok(html) => html,
             Err(_) => sjis_to_utf8(&byte),
         };
+        println!("{}", dat);
         parse_board_dat(&dat, &self)
     }
 }
@@ -77,4 +79,18 @@ fn parse_board_dat(dat: &str, board: &Board) -> Result<Vec<ThreadSubject>> {
         });
     }
     Ok(thread_subjects)
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_parse_dat() {
+        let url = "https://mi.5ch.net/news4vip/";
+        let board = Board::new(url.to_string()).unwrap();
+        let subjects = board.get().await.unwrap();
+        println!("{:?}", subjects);
+    }
 }
