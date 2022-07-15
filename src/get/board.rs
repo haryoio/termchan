@@ -35,7 +35,7 @@ impl Board {
             name,
         }
     }
-    async fn get(&self) -> Vec<ThreadSubject> {
+    pub async fn get(&self) -> Vec<ThreadSubject> {
         let byte = reqwest::get(&self.url)
             .await
             .unwrap()
