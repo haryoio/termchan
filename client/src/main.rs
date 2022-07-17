@@ -4,53 +4,68 @@ mod event;
 mod renderer;
 mod state;
 mod style;
-mod ui;
 use std::{
     error::Error,
-    io,
-    sync::mpsc::{self, Receiver},
+    io::{self, Write},
+    process,
+    sync::Arc,
     time::Duration,
 };
 
 use application::App;
-use event::{events, key_event_handler};
+use event::{event_handler, event_sender, Command};
+use futures::executor::{block_on, Enter};
+use renderer::Renderer;
 use termion::{
-    event::Key,
+    async_stdin,
+    event::{parse_event, Event as TermionEvent, Key},
     input::{MouseTerminal, TermRead},
-    raw::IntoRawMode,
-    screen::AlternateScreen,
+    raw::{IntoRawMode, RawTerminal},
 };
-use tui::{
-    backend::{Backend, TermionBackend},
-    Terminal,
+use tokio::sync::{
+    mpsc::{self, Receiver},
+    Mutex,
 };
+mod ui;
 
-fn main() {
-    run(200).unwrap();
+use crate::event::Event;
+#[tokio::main]
+async fn main() {
+    let _ = run().await;
 }
 
-pub fn run(tick_rate: u64) -> Result<(), Box<dyn Error>> {
+pub async fn run() -> Result<(), Box<dyn Error>> {
     // setup terminal
-    let stdout = io::stdout().into_raw_mode()?;
-    let stdout = MouseTerminal::from(stdout);
-    let stdout = AlternateScreen::from(stdout);
-    let backend = TermionBackend::new(stdout);
-    let mut terminal = Terminal::new(backend)?;
+    let mut render = renderer::Renderer::new(RawTerminal::from(io::stdout().into_raw_mode()?))?;
+    let mut app = App::new();
 
-    let app = App::new(tick_rate);
-
-    // create app and run it
-    run_app(&mut terminal, app)?;
-
-    Ok(())
-}
-
-fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> Result<(), Box<dyn Error>> {
     loop {
-        terminal.draw(|f| ui::draw(f, &mut app))?;
-        app.on_event();
-        if app.should_quit {
-            return Ok(());
+        let mut rx = event_sender().await;
+
+        use Command::*;
+        while let Some(message) = rx.recv().await {
+            match message {
+                Exit => todo!(),
+                Input(key) => {
+                    use termion::event::Key::*;
+                    match key {
+                        Char('q') => process::exit(0),
+                        Ctrl('b') => app.layout.toggle_visible_sidepane(),
+                        Char('\t') => app.layout.toggle_focus_pane(),
+                        Char('l') => app.update(Event::Get).await,
+                        Char('t') => app.update(Event::Tab).await,
+                        Char('j') => app.update(Event::Down).await,
+                        Char('k') => app.update(Event::Up).await,
+                        Char('\n') => {
+                            app.update(Event::Enter).await;
+                        }
+                        _ => {}
+                    }
+                    let _ = render.render(&mut app.clone()).await;
+                }
+                Tick => {}
+                _ => {}
+            }
         }
     }
 }

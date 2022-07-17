@@ -1,55 +1,87 @@
-use std::{
-    io,
-    sync::mpsc::{self, Receiver},
-    thread,
-    time::Duration,
-};
+use std::{io, process, sync::Arc, thread, time::Duration};
 
-use termion::{event::Key, input::TermRead};
+use termion::{
+    event::{Event as TermionEvent, Key},
+    input::TermRead,
+    raw::IntoRawMode,
+};
+use tokio::{
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Mutex,
+    },
+    time::Instant,
+};
 
 use crate::application::App;
 
-pub enum Event {
+#[derive(Debug)]
+pub enum Command {
+    Exit,
     Input(Key),
     Tick,
 }
 
-pub fn events(tick_rate: u64) -> mpsc::Receiver<Event> {
-    let tick_rate = Duration::from_millis(tick_rate);
-    let (tx, rx) = mpsc::channel();
-    let keys_tx = tx.clone();
-    thread::spawn(move || {
+pub enum Event {
+    Get,
+    Post,
+    Tab,
+    Exit,
+    Up,
+    Down,
+    Enter,
+}
+// send event to event_handler
+pub async fn event_sender() -> Receiver<Command> {
+    let (tx, rx) = mpsc::channel(10);
+    let key_tx = tx.clone();
+    tokio::spawn(async move {
+        let tx = key_tx.clone();
+        let _raw_term = std::io::stdout().into_raw_mode().unwrap();
         let stdin = io::stdin();
-        for key in stdin.keys().flatten() {
-            if let Err(err) = keys_tx.send(Event::Input(key)) {
-                eprintln!("{}", err);
-                return;
+        for evt in stdin.events().map(|evt| evt.unwrap()) {
+            match evt {
+                TermionEvent::Key(key) => {
+                    let _ = tx.send(Command::Input(key)).await;
+                }
+                _ => {}
             }
         }
     });
-    thread::spawn(move || {
+    let tick_tx = tx.clone();
+    tokio::spawn(async move {
+        let tx = tick_tx.clone();
+
         loop {
-            if let Err(err) = tx.send(Event::Tick) {
-                eprintln!("{}", err);
-                break;
-            }
-            thread::sleep(tick_rate);
+            let mut interval = tokio::time::interval(Duration::from_millis(100));
+            let _ = tx.send(Command::Tick).await;
+            let _ = interval.tick().await;
         }
     });
     rx
 }
 
-pub fn key_event_handler(app: &mut App) {
-    let recv = &app.event_rx;
-    match recv.recv().unwrap() {
-        Event::Input(key) => {
-            match key {
-                Key::Char('q') => app.should_quit = true,
-                Key::Ctrl('b') => app.layout.toggle_visible_sidepane(),
-                Key::Char('\t') => app.layout.toggle_focus_pane(),
-                _ => {}
+pub async fn event_handler<'a>(rx: Arc<Mutex<Receiver<Command>>>, app: &mut App<'a>) {
+    use Command::*;
+    let mut rx = rx.lock().await;
+    while let Some(message) = rx.recv().await {
+        match message {
+            Input(key) => {
+                use termion::event::Key::*;
+                match key {
+                    Char('q') => process::exit(0),
+                    Ctrl('b') => app.layout.toggle_visible_sidepane(),
+                    Char('\t') => app.layout.toggle_focus_pane(),
+                    Char('l') => app.update(Event::Get).await,
+                    Char('c') => println!("{:?}", app.category),
+                    Char('t') => app.update(Event::Tab).await,
+                    Char('j') => app.update(Event::Down).await,
+                    Char('k') => app.update(Event::Up).await,
+                    _ => {}
+                }
             }
+            Tick => {}
+            _ => unimplemented!(),
         }
-        Event::Tick => app.on_tick(),
     }
 }

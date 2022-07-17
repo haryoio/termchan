@@ -226,11 +226,13 @@ dependencies = [
  "anyhow",
  "clap",
  "crossterm 0.24.0",
+ "futures",
  "once_cell",
  "serde",
  "serde_json",
  "termchan",
  "termion",
+ "termion-input-tokio",
  "tokio",
  "tui",
  "tui-tree-widget",
@@ -664,7 +666,7 @@ dependencies = [
  "indexmap",
  "slab",
  "tokio",
- "tokio-util",
+ "tokio-util 0.7.3",
  "tracing",
 ]
 
@@ -1505,7 +1507,7 @@ dependencies = [
  "serde_urlencoded",
  "tokio",
  "tokio-native-tls",
- "tokio-util",
+ "tokio-util 0.7.3",
  "tower-service",
  "url",
  "wasm-bindgen",
@@ -1882,6 +1884,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "termion-input-tokio"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5bba8c7cfdbb700454e9b7845d7365703772c125584ef05fe2f007fe497c9ac9"
+dependencies = [
+ "bytes",
+ "futures",
+ "termion",
+ "tokio",
+ "tokio-util 0.6.10",
+]
+
+[[package]]
 name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2004,6 +2019,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7d995660bd2b7f8c1568414c1126076c13fbb725c40112dc0120b78eb9b717b"
 dependencies = [
  "native-tls",
+ "tokio",
+]
+
+[[package]]
+name = "tokio-util"
+version = "0.6.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36943ee01a6d67977dd3f84a5a1d2efeb4ada3a1ae771cadfaa535d9d9fc6507"
+dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-sink",
+ "log",
+ "pin-project-lite",
  "tokio",
 ]
 
