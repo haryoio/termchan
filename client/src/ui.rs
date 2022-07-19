@@ -4,20 +4,14 @@ pub mod stateful_mutex_list;
 
 use std::fmt::Display;
 
-use chrono::{TimeZone, Utc};
-use chrono_tz::{Asia::Tokyo, Tz};
-use termchan::get::{
-    bbsmenu::{CategoryContent, CategoryItem},
-    message::{Message, Text},
-    thread::ThreadPost,
-};
+use termchan::get::thread::ThreadPost;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs, Widget},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
     Frame,
 };
 
@@ -290,7 +284,7 @@ async fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
 
             // スレッド作成時刻
 
-            for (s, c) in thread.name.chars().enumerate() {
+            for (_, c) in thread.name.chars().enumerate() {
                 row.push(c);
                 row_size += c.len_utf8();
                 if row_size > width {
@@ -302,7 +296,7 @@ async fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
 
             texts.push(Spans::from(format!("{}", row)));
             let mut last_row = thread.created_at.format("%Y/%m/%d %H:%M:%S").to_string();
-            for i in last_row.len()
+            for _ in last_row.len()
                 ..width
                     - format!("{:>4} {:.2}", &thread.count.to_string(), thread.ikioi)
                         .as_str()

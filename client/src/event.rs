@@ -1,27 +1,21 @@
-use std::{io, process, sync::Arc, thread, time::Duration};
+use std::{io, time::Duration};
 
 use termion::{
     event::{Event as TermionEvent, Key},
     input::TermRead,
     raw::IntoRawMode,
 };
-use tokio::{
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Mutex,
-    },
-    time::Instant,
-};
-
-use crate::application::App;
+use tokio::sync::mpsc::{self, Receiver};
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub enum Command {
     Exit,
     Input(Key),
     Tick,
 }
 
+#[allow(dead_code)]
 pub enum Event {
     Get,
     Post,

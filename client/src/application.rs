@@ -1,22 +1,17 @@
-use std::{ops::Index, sync::Arc, time::Duration};
-
-use chrono::{DateTime, TimeZone};
+use chrono::TimeZone;
 use chrono_tz::Asia::Tokyo;
-use eyre::{eyre, Result};
-use termchan::{
-    get::{
-        bbsmenu::{Bbsmenu, CategoryContent, CategoryItem},
-        board::{Board, ThreadSubject},
-        thread::{Thread, ThreadPost, ThreadResponse},
-    },
-    url::url,
+use eyre::Result;
+use termchan::get::{
+    bbsmenu::{Bbsmenu, CategoryContent, CategoryItem},
+    board::{Board, ThreadSubject},
+    thread::{Thread, ThreadPost, ThreadResponse},
 };
 
 use crate::{
-    config::{Config, Theme},
+    config::Theme,
     event::Event,
     state::{LayoutState, LeftTabItem, Pane, RightTabItem, TabsState},
-    ui::{stateful_list::StatefulList, stateful_mutex_list::StatefulMutexList},
+    ui::stateful_list::StatefulList,
 };
 
 #[derive(Clone)]
@@ -90,24 +85,24 @@ impl App {
     pub async fn get_categories(&self) -> Vec<CategoryItem> {
         self.categories.items.clone()
     }
-    pub async fn get_category(&self) -> Vec<CategoryContent> {
-        let category = self.get_categories().await;
-        if category.len() <= self.category.state.selected().unwrap() {
-            return vec![CategoryContent {
-                board_name: "".to_string(),
-                url:        "".to_string(),
-            }];
-        }
-        category[self.category.state.selected().unwrap()]
-            .category_content
-            .clone()
-    }
-    pub async fn get_board(&self) -> Vec<ThreadSubject> {
-        self.board.items.clone()
-    }
-    pub async fn get_thread(&self) -> Vec<ThreadPost> {
-        self.thread.items.clone()
-    }
+    // pub async fn get_category(&self) -> Vec<CategoryContent> {
+    //     let category = self.get_categories().await;
+    //     if category.len() <= self.category.state.selected().unwrap() {
+    //         return vec![CategoryContent {
+    //             board_name: "".to_string(),
+    //             url:        "".to_string(),
+    //         }];
+    //     }
+    //     category[self.category.state.selected().unwrap()]
+    //         .category_content
+    //         .clone()
+    // }
+    // pub async fn get_board(&self) -> Vec<ThreadSubject> {
+    //     self.board.items.clone()
+    // }
+    // pub async fn get_thread(&self) -> Vec<ThreadPost> {
+    //     self.thread.items.clone()
+    // }
 }
 
 impl App {
@@ -236,7 +231,7 @@ impl App {
                     }
                     Pane::Main => {
                         match self.right_tabs.get() {
-                            RightTabItem::Thread(name, url) => {
+                            RightTabItem::Thread(_, url) => {
                                 // tabsの中で現在選択中のタブのindexを取得する
                                 if self.right_tabs.titles.len() >= 1 {
                                     return Ok(());
@@ -249,7 +244,6 @@ impl App {
                                         // nameは被る可能性があるので、一意の値であるurlを使用して位置を取得
                                         match x {
                                             RightTabItem::Thread(.., url2) => &url == url2,
-                                            _ => false,
                                         }
                                     })
                                     .unwrap();
@@ -347,7 +341,6 @@ impl App {
                                     "".to_string(),
                                 ));
                             }
-                            _ => {}
                         }
                         Ok(())
                     }
@@ -357,7 +350,6 @@ impl App {
                                 self.layout.focus_pane = Pane::Side;
                                 // self.left_tabs.set(LeftTabItem::Bbsmenu);
                             }
-                            _ => {}
                         }
                         Ok(())
                     }

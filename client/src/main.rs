@@ -8,24 +8,12 @@ use std::{
     error::Error,
     io::{self, Write},
     process,
-    sync::Arc,
-    time::Duration,
 };
 
 use application::App;
 use event::{event_sender, Command};
-use futures::executor::{block_on, Enter};
-use renderer::Renderer;
-use termion::{
-    async_stdin,
-    event::{parse_event, Event as TermionEvent, Key},
-    input::{MouseTerminal, TermRead},
-    raw::{IntoRawMode, RawTerminal},
-};
-use tokio::sync::{
-    mpsc::{self, Receiver},
-    Mutex,
-};
+use termion::raw::{IntoRawMode, RawTerminal};
+
 mod ui;
 
 fn append_file(content: &str) {

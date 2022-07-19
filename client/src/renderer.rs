@@ -1,11 +1,7 @@
-use std::{future, io::Write, process};
+use std::{io::Write, process};
 
 use anyhow::Result;
-use futures::executor::block_on;
-use termion::{
-    raw::{IntoRawMode, RawTerminal},
-    screen::{self, AlternateScreen},
-};
+use termion::screen::AlternateScreen;
 use tui::{backend::TermionBackend, Terminal};
 
 use crate::{application::App, ui};
@@ -28,7 +24,6 @@ impl<W: Write> Renderer<W> {
         self.terminal.clear()?;
         self.terminal.flush()?;
         process::exit(0);
-        Ok(())
     }
 }
 

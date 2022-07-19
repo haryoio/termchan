@@ -2,10 +2,6 @@ use std::{fmt::Display, io::Write};
 
 use scraper::Node;
 
-fn write_file(path: &str, content: &&str) {
-    let mut file = std::fs::File::create(path).unwrap();
-    file.write_all(content.as_bytes()).unwrap();
-}
 fn append_file(content: &str) {
     let mut file = std::fs::OpenOptions::new()
         .append(true)

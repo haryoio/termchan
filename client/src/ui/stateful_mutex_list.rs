@@ -1,13 +1,7 @@
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
-use tui::{
-    buffer::Buffer,
-    layout::{Constraint, Corner, Direction, Layout, Rect},
-    style::Style,
-    text::Text,
-    widgets::{Block, ListItem, ListState, StatefulWidget, Widget},
-};
+use tui::widgets::ListState;
 
 #[derive(Debug, Clone)]
 pub struct StatefulMutexList<T> {
@@ -15,6 +9,7 @@ pub struct StatefulMutexList<T> {
     pub items: Arc<Vec<Mutex<T>>>,
 }
 
+#[allow(dead_code)]
 impl<T> StatefulMutexList<T>
 where
     T: Clone,

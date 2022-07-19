@@ -1,8 +1,5 @@
 use serde::{Deserialize, Serialize};
-use tui::{
-    style::{Color, Style},
-    widgets::BorderType as TuiBorderType,
-};
+use tui::{style::Color, widgets::BorderType as TuiBorderType};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
@@ -138,11 +135,6 @@ impl Theme {
             BorderType::Rounded => TuiBorderType::Rounded,
             BorderType::Double => TuiBorderType::Double,
             BorderType::Thick => TuiBorderType::Thick,
-            _ => TuiBorderType::Plain,
         }
-    }
-
-    pub fn tab_style(&self, toggle: bool) -> tui::style::Style {
-        Style::default().fg(self.text).bg(self.inactive)
     }
 }

@@ -1,6 +1,5 @@
-use eyre::{eyre, ContextCompat, Result, WrapErr};
-use regex::Regex;
-use serde_json::{json, Value};
+use eyre::Result;
+use serde_json::Value;
 
 pub struct Bbsmenu {
     url: String,

@@ -1,31 +1,12 @@
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    f32::consts::E,
-    fmt::Display,
-    sync::{Arc, Mutex},
-    time::{Duration, Instant},
-};
-
-use crate::config::{Config, Theme};
-
-/// UI
-/// tab name / bredcrumb /
-
-pub struct State {
-    message:   Option<String>,
-    tab_index: Mutex<Arc<usize>>,
-    tab_items: Arc<Vec<Mutex<String>>>,
-    theme:     Mutex<Arc<Theme>>,
-}
+use std::fmt::Display;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum LeftTabItem {
     Bbsmenu,
     Categories,
     Category(Title),
     Board(Title),
-
     Settings,
 }
 type Title = String;
@@ -69,38 +50,7 @@ impl Default for RightTabItem {
 }
 
 #[derive(Debug, Clone)]
-pub struct Tab<T> {
-    pub tab_index: usize,
-    pub tab_list:  Vec<T>,
-}
-impl<T> Tab<T>
-where
-    T: Display + Clone,
-{
-    pub fn new(tab_list: Vec<T>) -> Tab<T> {
-        Tab {
-            tab_index: 0,
-            tab_list,
-        }
-    }
-    pub fn get_tab(&self) -> T {
-        self.tab_list[self.tab_index].clone()
-    }
-    pub fn next(&mut self) {
-        self.tab_index += 1;
-        if self.tab_index >= self.tab_list.len() {
-            self.tab_index = 0;
-        }
-    }
-    pub fn prev(&mut self) {
-        self.tab_index -= 1;
-        if self.tab_index >= self.tab_list.len() {
-            self.tab_index = self.tab_list.len() - 1;
-        }
-    }
-}
 
-#[derive(Debug, Clone)]
 pub struct TabsState<T: Display + Default> {
     pub titles: Vec<T>,
     pub index:  usize,

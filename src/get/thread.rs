@@ -1,10 +1,9 @@
 use eyre::{eyre, ContextCompat, Result, WrapErr};
-use html_parser::Dom;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
 use super::{message::Message, name::Name};
-use crate::{error::FormatError, header::build::get_header, url::reply::ThreadParams};
+use crate::{header::build::get_header, url::reply::ThreadParams};
 
 #[derive(Debug, Clone)]
 pub struct ThreadDetail {

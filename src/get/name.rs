@@ -11,7 +11,7 @@ pub struct Name {
 
 impl Display for Name {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.name);
+        write!(f, "{}", self.name)?;
         Ok(())
     }
 }
@@ -24,6 +24,7 @@ impl Name {
 /// Parse name from string.
 /// 読みにくいので改修する必要あり。
 
+#[allow(unused_assignments)]
 fn parse_name(name: &str) -> Name {
     let mut mail = None;
     let mut cote = None;

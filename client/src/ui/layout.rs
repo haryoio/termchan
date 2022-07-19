@@ -1,13 +1,4 @@
-use std::sync::Arc;
-
-use tokio::sync::Mutex;
-use tui::{
-    buffer::Buffer,
-    layout::{Constraint, Corner, Direction, Layout, Rect},
-    style::Style,
-    text::Text,
-    widgets::{Block, ListItem, ListState, StatefulWidget, Widget},
-};
+use tui::layout::{Constraint, Direction, Layout, Rect};
 
 pub fn split_area(area: Rect) -> Vec<Rect> {
     let chunks = Layout::default()

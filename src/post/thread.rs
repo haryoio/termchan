@@ -1,6 +1,4 @@
-use std::{collections::HashMap, error, hash::Hash};
-
-use anyhow::{self, anyhow as any, Error, Ok};
+use anyhow::{self, anyhow as any, Ok};
 use reqwest;
 
 use crate::{
@@ -22,7 +20,6 @@ pub async fn create_thread(
     let board_params = BoardParams::new(url);
     let cert = board_cert(board_params.build_board_url()).await?;
     let form_data = ThreadFormData::new(subject, message, mail, name, &board_params, &cert).build();
-    println!("{}", form_data);
 
     let mut cookies = Cookies::new();
     cookies.add("yuki", "akari");
