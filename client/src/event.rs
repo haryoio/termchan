@@ -30,6 +30,15 @@ pub enum Event {
     Up,
     Down,
     Enter,
+    Left,
+    Right,
+    RemoveHistory,
+    ToggleSidepane,
+    ToggleFocusPane,
+    BackTab,
+    NextTab,
+    ScrollToTop,
+    ScrollToBottom,
 }
 // send event to event_handler
 pub async fn event_sender() -> Receiver<Command> {
@@ -51,7 +60,6 @@ pub async fn event_sender() -> Receiver<Command> {
     let tick_tx = tx.clone();
     tokio::spawn(async move {
         let tx = tick_tx.clone();
-
         loop {
             let mut interval = tokio::time::interval(Duration::from_millis(100));
             let _ = tx.send(Command::Tick).await;
@@ -61,27 +69,27 @@ pub async fn event_sender() -> Receiver<Command> {
     rx
 }
 
-pub async fn event_handler<'a>(rx: Arc<Mutex<Receiver<Command>>>, app: &mut App<'a>) {
-    use Command::*;
-    let mut rx = rx.lock().await;
-    while let Some(message) = rx.recv().await {
-        match message {
-            Input(key) => {
-                use termion::event::Key::*;
-                match key {
-                    Char('q') => process::exit(0),
-                    Ctrl('b') => app.layout.toggle_visible_sidepane(),
-                    Char('\t') => app.layout.toggle_focus_pane(),
-                    Char('l') => app.update(Event::Get).await,
-                    Char('c') => println!("{:?}", app.category),
-                    Char('t') => app.update(Event::Tab).await,
-                    Char('j') => app.update(Event::Down).await,
-                    Char('k') => app.update(Event::Up).await,
-                    _ => {}
-                }
-            }
-            Tick => {}
-            _ => unimplemented!(),
-        }
-    }
-}
+// pub async fn event_handler<'a>(rx: Arc<Mutex<Receiver<Command>>>, app: &mut App) {
+//     use Command::*;
+//     let mut rx = rx.lock().await;
+//     while let Some(message) = rx.recv().await {
+//         match message {
+//             Input(key) => {
+//                 use termion::event::Key::*;
+//                 match key {
+//                     Char('q') => process::exit(0),
+//                     Ctrl('b') => app.layout.toggle_visible_sidepane(),
+//                     Char('\t') => app.layout.toggle_focus_pane(),
+//                     Char('l') => app.update(Event::Get).await,
+//                     Char('c') => println!("{:?}", app.category),
+//                     Char('t') => app.update(Event::Tab).await,
+//                     Char('j') | Down => app.update(Event::Down).await,
+//                     Char('k') | Up => app.update(Event::Up).await,
+//                     _ => {}
+//                 }
+//             }
+//             Tick => {}
+//             _ => unimplemented!(),
+//         }
+//     }
+// }

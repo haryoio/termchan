@@ -1,4 +1,4 @@
-use std::{future, io::Write};
+use std::{future, io::Write, process};
 
 use anyhow::Result;
 use futures::executor::block_on;
@@ -19,8 +19,15 @@ impl<W: Write> Renderer<W> {
         let terminal = Terminal::new(backend)?;
         Ok(Renderer { terminal })
     }
-    pub async fn render(&mut self, app: &mut App<'_>) -> Result<()> {
+    pub fn render(&mut self, app: &mut App) -> Result<()> {
         self.terminal.draw(|mut f| ui::draw(&mut f, app))?;
+        Ok(())
+    }
+    pub fn exit(&mut self) -> Result<()> {
+        self.terminal.show_cursor()?;
+        self.terminal.clear()?;
+        self.terminal.flush()?;
+        process::exit(0);
         Ok(())
     }
 }
@@ -28,11 +35,9 @@ impl<W: Write> Renderer<W> {
 impl<W: Write> Drop for Renderer<W> {
     fn drop(&mut self) {
         self.terminal.show_cursor().expect("Failed to show cursor");
-
+        // self.terminal.clear();
         if std::thread::panicking() {
-            eprintln!(
-                "termchat paniced, to log the error you can redirect stderror to a file, example: termchat 2> termchat_log",
-            );
+            self.terminal.clear().expect("Failed to clear screen");
         }
     }
 }

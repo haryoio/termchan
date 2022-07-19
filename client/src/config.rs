@@ -84,6 +84,11 @@ pub struct Theme {
     pub read_symbol:          String,
     pub posted_symbol:        String,
 
+    pub ikioi_low:         Color,
+    pub ikioi_middle:      Color,
+    pub ikioi_middle_high: Color,
+    pub ikioi_high:        Color,
+
     /// border_type: Plain | Rounded | Double | Thick
     /// default: Plain
     /// 参照: https://docs.rs/tui-style/0.1.0/tui_style/enum.BorderStyle.html
@@ -109,6 +114,11 @@ impl Default for Theme {
             inactive_selected_text:   Color::Cyan,
 
             reset: Color::Reset,
+
+            ikioi_low:         Color::LightCyan,
+            ikioi_middle:      Color::LightCyan,
+            ikioi_middle_high: Color::LightCyan,
+            ikioi_high:        Color::LightCyan,
 
             active_item_symbol:   ">".to_string(),
             inactive_item_symbol: " ".to_string(),

@@ -224,8 +224,11 @@ version = "0.1.0"
 dependencies = [
  "alt_serde_derive",
  "anyhow",
+ "chrono",
+ "chrono-tz",
  "clap",
  "crossterm 0.24.0",
+ "eyre",
  "futures",
  "once_cell",
  "serde",

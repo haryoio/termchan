@@ -3,6 +3,7 @@ use html_parser::Dom;
 use once_cell::sync::Lazy;
 use regex::Regex;
 
+use super::{message::Message, name::Name};
 use crate::{error::FormatError, header::build::get_header, url::reply::ThreadParams};
 
 #[derive(Debug, Clone)]
@@ -15,9 +16,10 @@ pub struct ThreadDetail {
 #[derive(Debug, Clone)]
 pub struct ThreadPost {
     pub id:      String,
-    pub name:    String,
+    pub name:    Name,
     pub date:    String,
-    pub message: String,
+    pub message: Message,
+    pub index:   i16,
 }
 #[derive(Debug, Clone)]
 pub struct ThreadResponse {
@@ -86,32 +88,34 @@ fn parse_thread_title(html: &str) -> Result<String> {
 }
 fn parse_replies_sc(html: &str) -> Result<Vec<ThreadPost>> {
     let mut posts: Vec<ThreadPost> = Vec::new();
-    for cap in REPLIES_SC_RE.captures_iter(html) {
+    for (i, cap) in REPLIES_SC_RE.captures_iter(html).enumerate() {
         let id = cap.name("id").unwrap();
         let name = cap.name("name").unwrap();
         let date = cap.name("date").unwrap();
         let message = cap.name("message").unwrap();
         posts.push(ThreadPost {
             id:      id.as_str().to_string(),
-            name:    name.as_str().to_string(),
+            name:    Name::new(&name.as_str().to_string()),
             date:    date.as_str().to_string(),
-            message: message.as_str().to_string(),
+            message: Message::new(&message.as_str().to_string()),
+            index:   i as i16 + 1,
         });
     }
     Ok(posts)
 }
 fn parse_replies(html: &str) -> Result<Vec<ThreadPost>> {
     let mut posts: Vec<ThreadPost> = Vec::new();
-    for cap in REPLIES_RE.captures_iter(html) {
+    for (i, cap) in REPLIES_RE.captures_iter(html).enumerate() {
         let id = cap.name("id").unwrap();
         let name = cap.name("name").unwrap();
         let date = cap.name("date").unwrap();
         let message = cap.name("message").unwrap();
         posts.push(ThreadPost {
             id:      id.as_str().to_string(),
-            name:    name.as_str().to_string(),
+            name:    Name::new(&name.as_str().to_string()),
             date:    date.as_str().to_string(),
-            message: message.as_str().to_string(),
+            message: Message::new(&message.as_str().to_string()),
+            index:   i as i16 + 1,
         });
     }
     Ok(posts)
@@ -135,19 +139,47 @@ fn parse_thread_html(html: &str, url: &str) -> Result<ThreadResponse> {
     })
 }
 
+impl Default for ThreadDetail {
+    fn default() -> Self {
+        ThreadDetail {
+            title: "".to_string(),
+            url:   "".to_string(),
+            owner: "".to_string(),
+        }
+    }
+}
+impl Default for ThreadPost {
+    fn default() -> Self {
+        ThreadPost {
+            id:      "".to_string(),
+            name:    Name::new(""),
+            date:    "".to_string(),
+            message: Message::new(""),
+            index:   0,
+        }
+    }
+}
+impl Default for ThreadResponse {
+    fn default() -> Self {
+        ThreadResponse {
+            detail: ThreadDetail::default(),
+            posts:  vec![ThreadPost::default()],
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::get::message::Message;
 
     #[tokio::test]
     async fn test_thread() {
-        let url = "https://mi.5ch.net/test/read.cgi/news4vip/1657462844/l50";
+        // let url = "https://mi.5ch.net/test/read.cgi/news4vip/1657462844/l50";
+        let url = "https://mi.5ch.net/test/read.cgi/news4vip/1658208434/l50";
         let thread = Thread::new(url.to_string()).unwrap();
         let thread_response = thread.get().await.unwrap();
         for post in thread_response.posts {
-            // println!("{:?}", Message::new(&post.message));
-            println!("{}", Message::new(&post.message));
+            println!("{}", post.name);
         }
     }
 }

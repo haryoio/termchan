@@ -1,8 +1,20 @@
-use std::fmt::Display;
+use std::{fmt::Display, io::Write};
 
 use scraper::Node;
 
-#[derive(Debug)]
+fn write_file(path: &str, content: &&str) {
+    let mut file = std::fs::File::create(path).unwrap();
+    file.write_all(content.as_bytes()).unwrap();
+}
+fn append_file(content: &str) {
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .open("./debug.log")
+        .unwrap();
+    file.write_all(content.as_bytes()).unwrap();
+}
+
+#[derive(Debug, Clone)]
 pub struct Message {
     pub image_url: Vec<String>,
     pub text:      Vec<Text>,
@@ -31,14 +43,16 @@ impl Default for Message {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Text {
     Plain(String),
     Link(String),
-    Anchor(String, String),
+    Anchor(AnchorUrl, AnchorText),
     NewLine,
     Space,
 }
+type AnchorUrl = String;
+type AnchorText = String;
 
 impl Display for Text {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -70,13 +84,15 @@ pub fn parses_msg(s: &str) -> Message {
                 if text.len() <= 2 {
                     continue;
                 }
-                let mut first_camma = false;
-                let text = if &text.chars().nth(0).unwrap() == &',' {
-                    first_camma = true;
-                    text[..text.len() - 1].to_string()
+                let first_camma = &text.chars().nth(0).unwrap() == &',';
+                let text = if first_camma {
+                    text.get(..text.char_indices().count())
+                        .unwrap_or("<error1>")
+                        .to_string()
                 } else {
-                    text[1..text.len() - 1].to_string()
+                    text.trim_start().to_string()
                 };
+
                 if text.len() == 0 {
                     continue;
                 }
@@ -119,13 +135,24 @@ pub fn parses_msg(s: &str) -> Message {
                                 images.push(url.to_string());
                                 values.next();
                             }
-                            _ => unimplemented!(),
+                            None => {
+                                let mut url = element.attr("href").unwrap().split("?");
+                                url.next();
+                                let url = match url.next() {
+                                    Some(url) => url.to_string(),
+                                    None => "".to_string(),
+                                };
+
+                                texts.push(Text::Link(url.to_string()));
+                                images.push(url.to_string());
+                            }
+                            _ => append_file(format!("unimplemented: {:?}", element).as_str()),
                         }
                         continue;
                     }
                     "br" => texts.push(Text::NewLine),
-                    "body" | "html" | "span" => {}
-                    _ => unimplemented!(),
+                    "body" | "html" | "span" | "hr" => {}
+                    _ => append_file(format!("unimplemented: {:?}", element).as_str()),
                 }
             }
             Node::Fragment => {}

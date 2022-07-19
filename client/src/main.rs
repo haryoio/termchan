@@ -13,7 +13,7 @@ use std::{
 };
 
 use application::App;
-use event::{event_handler, event_sender, Command};
+use event::{event_sender, Command};
 use futures::executor::{block_on, Enter};
 use renderer::Renderer;
 use termion::{
@@ -28,40 +28,65 @@ use tokio::sync::{
 };
 mod ui;
 
-use crate::event::Event;
+fn append_file(content: &str) {
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .open("./debug.log")
+        .unwrap();
+    file.write_all(content.as_bytes()).unwrap();
+}
+use crate::{event::Event, state::Pane};
 #[tokio::main]
 async fn main() {
-    let _ = run().await;
+    match run().await {
+        Ok(_) => (),
+        Err(e) => {
+            append_file(&format!("{:?}", e));
+            process::exit(1);
+        }
+    }
 }
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
     // setup terminal
     let mut render = renderer::Renderer::new(RawTerminal::from(io::stdout().into_raw_mode()?))?;
     let mut app = App::new();
+    app.update(Event::Down).await?;
 
     loop {
+        let _ = render.render(&mut app.clone());
         let mut rx = event_sender().await;
 
         use Command::*;
         while let Some(message) = rx.recv().await {
             match message {
-                Exit => todo!(),
                 Input(key) => {
                     use termion::event::Key::*;
                     match key {
-                        Char('q') => process::exit(0),
+                        Char('q') => render.exit()?,
                         Ctrl('b') => app.layout.toggle_visible_sidepane(),
                         Char('\t') => app.layout.toggle_focus_pane(),
-                        Char('l') => app.update(Event::Get).await,
-                        Char('t') => app.update(Event::Tab).await,
-                        Char('j') => app.update(Event::Down).await,
-                        Char('k') => app.update(Event::Up).await,
+                        Char('r') => {
+                            app.update(Event::Get).await?;
+                            match app.layout.focus_pane {
+                                Pane::Main => app.update(Event::ScrollToBottom).await?,
+                                Pane::Side => app.update(Event::ScrollToTop).await?,
+                            }
+                        }
+                        Ctrl('j') | Char('g') => app.update(Event::ScrollToBottom).await?,
+                        Ctrl('k') | Char('G') => app.update(Event::ScrollToTop).await?,
+                        Char('j') | Down => app.update(Event::Down).await?,
+                        Char('k') | Up => app.update(Event::Up).await?,
+                        Char('h') | Left => app.update(Event::Left).await?,
+                        Char('l') | Right => app.update(Event::Right).await?,
+                        Backspace => app.update(Event::RemoveHistory).await?,
                         Char('\n') => {
-                            app.update(Event::Enter).await;
+                            app.update(Event::Enter).await?;
+                            app.update(Event::ScrollToTop).await?;
                         }
                         _ => {}
                     }
-                    let _ = render.render(&mut app.clone()).await;
+                    let _ = render.render(&mut app.clone());
                 }
                 Tick => {}
                 _ => {}

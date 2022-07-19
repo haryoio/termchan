@@ -1,249 +1,93 @@
-use std::{collections::HashMap, f32::consts::E, fmt::Display, sync::Arc, time::Duration};
+use std::{ops::Index, sync::Arc, time::Duration};
 
-use termchan::get::{
-    bbsmenu::{Bbsmenu, CategoryContent, CategoryItem},
-    board::{Board, ThreadSubject},
-    thread::{Thread, ThreadPost, ThreadResponse},
+use chrono::{DateTime, TimeZone};
+use chrono_tz::Asia::Tokyo;
+use eyre::{eyre, Result};
+use termchan::{
+    get::{
+        bbsmenu::{Bbsmenu, CategoryContent, CategoryItem},
+        board::{Board, ThreadSubject},
+        thread::{Thread, ThreadPost, ThreadResponse},
+    },
+    url::url,
 };
-use termion::event::Key;
-use tokio::sync::Mutex;
-use tui::widgets::{ListItem, ListState};
 
 use crate::{
     config::{Config, Theme},
     event::Event,
-    state::{LeftTabItem, RightTabItem},
+    state::{LayoutState, LeftTabItem, Pane, RightTabItem, TabsState},
+    ui::{stateful_list::StatefulList, stateful_mutex_list::StatefulMutexList},
 };
-#[derive(Debug, Clone)]
-pub struct TabsState<T: Display> {
-    pub titles: Vec<T>,
-    pub index:  usize,
-}
 
-impl<T> TabsState<T>
-where
-    T: Display,
-{
-    pub fn new(titles: Vec<T>) -> TabsState<T> {
-        TabsState { titles, index: 0 }
-    }
-    pub fn get(&self) -> &T {
-        &self.titles[self.index]
-    }
-    pub fn history_add(&mut self, title: T) {
-        self.titles.push(title);
-    }
-    pub fn hidtory_remove(&mut self) {
-        self.titles.pop();
-        if self.index >= self.titles.len() {
-            self.index = self.titles.len() - 1;
-        }
-    }
-    pub fn next(&mut self) {
-        self.index = (self.index + 1) % self.titles.len();
-    }
-
-    pub fn previous(&mut self) {
-        if self.index > 0 {
-            self.index -= 1;
-        } else {
-            self.index = self.titles.len() - 1;
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct StatefulMutexList<T> {
-    pub state: ListState,
-    pub items: Arc<Vec<Mutex<T>>>,
-}
-
-impl<T> StatefulMutexList<T>
-where
-    T: Clone,
-{
-    pub fn with_items(items: Vec<T>) -> StatefulMutexList<T> {
-        let mut new_items: Vec<Mutex<T>> = Vec::new();
-        for item in items {
-            new_items.push(Mutex::new(item));
-        }
-        StatefulMutexList {
-            state: ListState::default(),
-            items: Arc::new(new_items),
-        }
-    }
-    pub async fn update(&mut self, f: impl Fn(&mut T)) {
-        for item in self.items.iter() {
-            let mut item = item.lock().await;
-            f(&mut item);
-        }
-    }
-    pub async fn update_with_items(&mut self, items: Vec<T>) {
-        let mut new_items: Vec<Mutex<T>> = Vec::new();
-        for item in items {
-            new_items.push(Mutex::new(item));
-        }
-        self.items = Arc::new(new_items);
-    }
-    pub fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-    pub fn prev(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
-    }
-    pub async fn get(&self) -> Option<T> {
-        Some(
-            self.items
-                .get(self.state.selected()?)
-                .unwrap()
-                .lock()
-                .await
-                .clone(),
-        )
-    }
-    pub async fn get_index(&self, index: usize) -> Option<T> {
-        Some(self.items.get(index).unwrap().lock().await.clone())
-    }
-
-    pub async fn to_list_items<'a>(
-        &'a self,
-        f: &dyn for<'b> Fn(&'b T) -> ListItem<'a>,
-    ) -> Vec<ListItem<'a>> {
-        let mut list_items: Vec<ListItem> = Vec::new();
-        for (_i, item) in self.items.iter().enumerate() {
-            let item = item.lock().await;
-            list_items.push(f(&item));
-        }
-        list_items
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct LayoutState {
-    pub visible_sidepane: bool,
-    pub focus_pane:       Pane,
-}
-#[derive(PartialEq, Clone, Debug)]
-pub enum Pane {
-    Side,
-    Main,
-}
-
-impl LayoutState {
-    pub fn new() -> LayoutState {
-        LayoutState {
-            visible_sidepane: true,
-            focus_pane:       Pane::Side,
-        }
-    }
-    pub fn toggle_visible_sidepane(&mut self) {
-        if self.visible_sidepane {
-            self.focus_pane = Pane::Main;
-        }
-        self.visible_sidepane = !self.visible_sidepane;
-    }
-    pub fn toggle_focus_pane(&mut self) {
-        self.focus_pane = match self.focus_pane {
-            Pane::Side => Pane::Main,
-            Pane::Main => {
-                if self.visible_sidepane {
-                    Pane::Side
-                } else {
-                    Pane::Main
-                }
-            }
-        };
-    }
-}
-
-pub type ThreadSubjectList = Vec<Mutex<ThreadSubject>>;
-pub type ThreadPostList = Vec<Mutex<ThreadPost>>;
 #[derive(Clone)]
-pub struct App<'a> {
-    pub messages:   Arc<Mutex<Vec<&'a str>>>,
-    pub right_tabs: TabsState<RightTabItem>,
-    pub left_tabs:  TabsState<LeftTabItem>,
+pub struct App {
+    pub message:          String,
+    pub right_tabs:       TabsState<RightTabItem>,
+    pub left_tabs:        TabsState<LeftTabItem>,
+    pub right_pane_items: Vec<(String, String, ThreadResponse)>,
 
     pub theme:      Theme,
     pub layout:     LayoutState,
-    pub bbsmenu:    StatefulMutexList<String>,
-    pub categories: StatefulMutexList<CategoryItem>,
-    pub category:   StatefulMutexList<CategoryContent>,
-    pub board:      Arc<Mutex<CategoryContent>>,
-    pub threads:    StatefulMutexList<ThreadSubject>,
-    pub thread:     StatefulMutexList<ThreadPost>,
+    pub bbsmenu:    StatefulList<String>,
+    pub categories: StatefulList<CategoryItem>,
+    pub category:   StatefulList<CategoryContent>,
+    pub board:      StatefulList<ThreadSubject>,
+    pub thread:     StatefulList<ThreadPost>,
 }
 
-impl<'a> App<'a> {
+impl App {
     pub fn new() -> Self {
         let left_tabs = TabsState::new(vec![LeftTabItem::Bbsmenu]);
-        let right_tabs = TabsState::new(vec![RightTabItem::Thread("".to_string())]);
+        let right_tabs = TabsState::new(vec![]);
         let layout = LayoutState::new();
-        let categories = StatefulMutexList::with_items(vec![CategoryItem {
+        let categories = StatefulList::with_items(vec![CategoryItem {
             category_name:    "".to_string(),
             category_content: vec![],
         }]);
-        let threads = StatefulMutexList::with_items(vec![ThreadSubject {
+        let board = StatefulList::with_items(vec![ThreadSubject {
             url:        "".to_string(),
             board_name: "".to_string(),
             name:       "".to_string(),
             id:         "".to_string(),
             count:      0,
+            ikioi:      0.0,
+            created_at: Tokyo.timestamp(0, 0),
         }]);
-        let category = StatefulMutexList::with_items(vec![CategoryContent {
+        let category = StatefulList::with_items(vec![CategoryContent {
             board_name: "".to_string(),
             url:        "".to_string(),
         }]);
+        let right_pane_items = vec![("".to_string(), "".to_string(), ThreadResponse::default())];
 
         App {
             left_tabs,
             right_tabs,
-
+            right_pane_items,
             layout,
-            messages: Arc::new(Mutex::new(Vec::new())),
+            message: "".to_string(),
             theme: Theme::default(),
-            bbsmenu: StatefulMutexList::with_items(vec![
+            bbsmenu: StatefulList::with_items(vec![
                 "https://menu.5ch.net/bbsmenu.json".to_string(),
                 "https://menu.2ch.sc/bbsmenu.html".to_string(),
             ]),
             categories,
             category,
-            board: Arc::new(Mutex::new(CategoryContent {
-                board_name: "".to_string(),
-                url:        "".to_string(),
-            })),
-            threads,
-            thread: StatefulMutexList::with_items(vec![]),
+            board,
+            thread: StatefulList::with_items(vec![]),
         }
     }
 }
 
 // GET
-impl<'a> App<'a> {
+impl App {
     pub async fn get_menu_item(&mut self) -> String {
-        self.bbsmenu.get().await.unwrap().clone()
+        self.bbsmenu
+            .items
+            .get(self.bbsmenu.selected())
+            .unwrap()
+            .clone()
     }
-    pub async fn get_categories(&self) -> Arc<Vec<Mutex<CategoryItem>>> {
+    pub async fn get_categories(&self) -> Vec<CategoryItem> {
         self.categories.items.clone()
     }
     pub async fn get_category(&self) -> Vec<CategoryContent> {
@@ -254,54 +98,39 @@ impl<'a> App<'a> {
                 url:        "".to_string(),
             }];
         }
-        self.categories
-            .get()
-            .await
-            .unwrap()
-            .clone()
+        category[self.category.state.selected().unwrap()]
             .category_content
+            .clone()
     }
-    pub async fn get_board(&self) -> CategoryContent {
-        self.board.lock().await.clone()
-    }
-    pub async fn get_threads(&self) -> Arc<Vec<Mutex<ThreadSubject>>> {
-        self.threads.items.clone()
+    pub async fn get_board(&self) -> Vec<ThreadSubject> {
+        self.board.items.clone()
     }
     pub async fn get_thread(&self) -> Vec<ThreadPost> {
-        let thread_idx = self.threads.state.selected().unwrap();
-        let threads = self.thread.items.clone();
-        let mut a = vec![];
-        for thread in threads.iter() {
-            a.push(thread.lock().await.clone());
-        }
-        a
+        self.thread.items.clone()
     }
 }
 
-impl<'a> App<'a> {
-    pub async fn update(&mut self, event: Event) {
+impl App {
+    pub async fn update(&mut self, event: Event) -> Result<()> {
         match event {
             Event::Get => {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
                             LeftTabItem::Bbsmenu => self.update_bbsmenu().await,
-                            LeftTabItem::Categories => self.update_categories().await,
-                            LeftTabItem::Category(..) => self.update_category().await,
-                            LeftTabItem::Board(..) => self.update_board().await,
-                            LeftTabItem::Settings => {
-                                // self.update_settings().await;
-                            }
-                            _ => {}
+                            LeftTabItem::Categories => self.update_categories().await?,
+                            LeftTabItem::Category(..) => self.update_category().await?,
+                            LeftTabItem::Board(..) => self.update_board().await?,
+                            LeftTabItem::Settings => {}
                         }
                     }
                     Pane::Main => {
                         match self.right_tabs.get() {
-                            RightTabItem::Thread(..) => self.update_thread().await,
-                            _ => {}
+                            RightTabItem::Thread(..) => self.update_thread().await?,
                         }
                     }
                 }
+                Ok(())
             }
             Event::Down => {
                 match self.layout.focus_pane {
@@ -310,8 +139,7 @@ impl<'a> App<'a> {
                             LeftTabItem::Bbsmenu => self.bbsmenu.next(),
                             LeftTabItem::Categories => self.categories.next(),
                             LeftTabItem::Category(..) => self.category.next(),
-                            LeftTabItem::Board(..) => {}
-                            LeftTabItem::Threads => self.threads.next(),
+                            LeftTabItem::Board(..) => self.board.next(),
                             _ => {}
                         }
                     }
@@ -321,6 +149,7 @@ impl<'a> App<'a> {
                         }
                     }
                 }
+                Ok(())
             }
             Event::Up => {
                 match self.layout.focus_pane {
@@ -329,8 +158,7 @@ impl<'a> App<'a> {
                             LeftTabItem::Bbsmenu => self.bbsmenu.prev(),
                             LeftTabItem::Categories => self.categories.prev(),
                             LeftTabItem::Category(..) => self.category.prev(),
-                            LeftTabItem::Board(..) => {}
-                            LeftTabItem::Threads => self.threads.prev(),
+                            LeftTabItem::Board(..) => self.board.prev(),
                             _ => {}
                         }
                     }
@@ -340,55 +168,188 @@ impl<'a> App<'a> {
                         }
                     }
                 }
+                Ok(())
             }
-            Event::Tab => {
+            Event::ScrollToTop => {
                 match self.layout.focus_pane {
                     Pane::Side => {
-                        self.left_tabs.next();
+                        match self.left_tabs.get() {
+                            LeftTabItem::Bbsmenu => self.bbsmenu.state.select(Some(0)),
+                            LeftTabItem::Categories => self.categories.state.select(Some(0)),
+                            LeftTabItem::Category(..) => self.category.state.select(Some(0)),
+                            LeftTabItem::Board(..) => self.board.state.select(Some(0)),
+                            _ => {}
+                        }
                     }
                     Pane::Main => {
-                        self.right_tabs.next();
+                        match self.right_tabs.get() {
+                            RightTabItem::Thread(..) => self.thread.state.select(Some(0)),
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Event::ScrollToBottom => {
+                match self.layout.focus_pane {
+                    Pane::Side => {
+                        match self.left_tabs.get() {
+                            LeftTabItem::Bbsmenu => {
+                                self.bbsmenu
+                                    .state
+                                    .select(Some(self.bbsmenu.items.len() - 1));
+                            }
+                            LeftTabItem::Categories => {
+                                self.categories
+                                    .state
+                                    .select(Some(self.categories.items.len() - 1));
+                            }
+
+                            LeftTabItem::Category(..) => {
+                                self.category
+                                    .state
+                                    .select(Some(self.category.items.len() - 1));
+                            }
+                            LeftTabItem::Board(..) => {
+                                self.board.state.select(Some(self.board.items.len() - 1));
+                            }
+                            _ => {}
+                        }
+                    }
+                    Pane::Main => {
+                        match self.right_tabs.get() {
+                            RightTabItem::Thread(..) => {
+                                self.thread.state.select(Some(self.thread.items.len() - 1));
+                            }
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Event::RemoveHistory => {
+                match self.layout.focus_pane {
+                    Pane::Side => {
+                        match self.left_tabs.get() {
+                            LeftTabItem::Bbsmenu => {}
+                            _ => self.left_tabs.hidtory_remove(),
+                        }
+                        Ok(())
+                    }
+                    Pane::Main => {
+                        match self.right_tabs.get() {
+                            RightTabItem::Thread(name, url) => {
+                                // tabsの中で現在選択中のタブのindexを取得する
+                                if self.right_tabs.titles.len() >= 1 {
+                                    return Ok(());
+                                }
+                                let idx = self
+                                    .right_tabs
+                                    .titles
+                                    .iter()
+                                    .position(|x| {
+                                        // nameは被る可能性があるので、一意の値であるurlを使用して位置を取得
+                                        match x {
+                                            RightTabItem::Thread(.., url2) => &url == url2,
+                                            _ => false,
+                                        }
+                                    })
+                                    .unwrap();
+                                self.right_tabs.titles.remove(idx);
+                                if self.right_tabs.index >= 1 {
+                                    self.right_tabs.index -= 1;
+                                }
+                            }
+                        }
+                        Ok(())
                     }
                 }
             }
+            Event::Right => {
+                if self.layout.focus_pane == Pane::Main {
+                    self.thread.items = self.right_pane_items[self.right_tabs.index + 1]
+                        .2
+                        .clone()
+                        .posts;
+                    self.right_tabs.next();
+                }
+                Ok(())
+            }
+            Event::Left => {
+                if self.layout.focus_pane == Pane::Main {
+                    self.thread.items = self.right_pane_items[self.right_tabs.index + 1]
+                        .2
+                        .clone()
+                        .posts;
+                    self.right_tabs.previous();
+
+                    // println!("{:?}", self.right_pane_items);
+                }
+                Ok(())
+            }
+            Event::Tab => Ok(()),
             Event::Enter => {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
                             LeftTabItem::Bbsmenu => {
                                 self.layout.focus_pane = Pane::Side;
-                                self.update_categories().await;
+                                let _ = self.update_categories().await?;
                                 self.left_tabs.history_add(LeftTabItem::Categories);
                                 self.left_tabs.next();
                             }
                             LeftTabItem::Categories => {
-                                self.layout.focus_pane = Pane::Side;
-                                self.update_category().await;
+                                {
+                                    let _ = self.update_category().await;
+                                    self.layout.focus_pane = Pane::Side;
+                                }
+
                                 let categ = self.get_categories().await;
                                 let selected = self.categories.state.selected().unwrap();
                                 if selected < categ.len() {
-                                    self.left_tabs.history_add(LeftTabItem::Category(
-                                        categ[selected].lock().await.clone().category_name,
-                                    ));
+                                    {
+                                        self.left_tabs.history_add(LeftTabItem::Category(
+                                            categ[selected].clone().category_name,
+                                        ));
+                                    }
                                     self.left_tabs.next();
                                 }
                             }
                             LeftTabItem::Category(..) => {
-                                self.layout.focus_pane = Pane::Side;
-                                self.update_board().await;
+                                {
+                                    let _ = self.update_board().await;
+                                    self.layout.focus_pane = Pane::Side;
+                                }
+
+                                let categ = self.category.items
+                                    [self.category.state.selected().unwrap()]
+                                .clone();
+
+                                self.left_tabs
+                                    .history_add(LeftTabItem::Board(categ.board_name.clone()));
+                                self.left_tabs.next();
                             }
                             LeftTabItem::Board(..) => {
-                                self.layout.focus_pane = Pane::Main;
+                                {
+                                    let _ = self.update_thread().await;
+                                }
+                                let idx = self.right_tabs.index;
+                                let board = self.right_pane_items[idx].clone();
+
                                 self.right_tabs
-                                    .history_add(RightTabItem::Thread("".to_string()));
+                                    .history_add(RightTabItem::Thread(board.0, board.1));
+
+                                self.layout.toggle_focus_pane();
+                                self.right_tabs.next();
                             }
                             LeftTabItem::Settings => {
                                 self.layout.focus_pane = Pane::Main;
-                                self.right_tabs
-                                    .history_add(RightTabItem::Thread("".to_string()));
+                                self.right_tabs.history_add(RightTabItem::Thread(
+                                    "".to_string(),
+                                    "".to_string(),
+                                ));
                             }
                             _ => {}
                         }
+                        Ok(())
                     }
                     Pane::Main => {
                         match self.right_tabs.get() {
@@ -398,44 +359,59 @@ impl<'a> App<'a> {
                             }
                             _ => {}
                         }
+                        Ok(())
                     }
                 }
             }
-            _ => {}
+            _ => Ok(()),
         }
     }
 
     pub async fn update_bbsmenu(&mut self) {
         // let url = self.get_menu_item().await;
     }
-    pub async fn update_categories(&mut self) {
+    pub async fn update_categories(&mut self) -> Result<()> {
         let url = self.get_menu_item().await;
-        let bbsmenu = Bbsmenu::new(url.clone()).unwrap().get().await;
-
-        self.categories
-            .update_with_items(bbsmenu.unwrap().menu_list)
-            .await;
+        let bbsmenu = Bbsmenu::new(url.clone())?.get().await?;
+        self.categories.items = bbsmenu.menu_list;
+        Ok(())
     }
-    pub async fn update_category(&mut self) {
-        let category_item = self.categories.get().await.unwrap();
-        self.category
-            .update_with_items(category_item.category_content)
-            .await;
-    }
-    pub async fn update_board(&mut self) {
-    }
-    pub async fn update_threads(&mut self) {
-        let board = self.get_board().await.url;
-        let board = Board::new(board).unwrap().get().await.unwrap();
-        self.threads.update_with_items(board);
-    }
-    pub async fn update_thread(&mut self) {
-        let thread_item = self.threads.get().await.unwrap();
-        let thread = Thread::new(thread_item.url.clone())
-            .unwrap()
-            .get()
-            .await
+    pub async fn update_category(&mut self) -> Result<()> {
+        let categ = self
+            .categories
+            .items
+            .get(self.categories.state.selected().unwrap())
             .unwrap();
-        self.thread.update_with_items(thread.posts).await;
+        self.category.items = categ.category_content.clone();
+        Ok(())
+    }
+    pub async fn update_board(&mut self) -> Result<()> {
+        let board_item = self
+            .category
+            .items
+            .get(self.category.state.selected().unwrap())
+            .unwrap();
+        let board = Board::new(board_item.url.clone())?.get().await?;
+        self.board.items = board;
+        Ok(())
+    }
+    pub async fn update_thread(&mut self) -> Result<()> {
+        let thread_item = self
+            .board
+            .items
+            .get(self.board.state.selected().unwrap())
+            .unwrap();
+
+        let thread = Thread::new(thread_item.url.clone())?.get().await;
+
+        let thread = match thread {
+            Ok(thread) => thread,
+            Err(e) => {
+                self.message = format!("{}", e);
+                ThreadResponse::default()
+            }
+        };
+        self.thread.items = thread.posts;
+        Ok(())
     }
 }
