@@ -2343,25 +2343,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "widget"
-version = "0.1.0"
-dependencies = [
- "alt_serde_derive",
- "anyhow",
- "clap",
- "crossterm 0.24.0",
- "futures",
- "once_cell",
- "serde",
- "serde_json",
- "termchan",
- "termion",
- "tokio",
- "tui",
- "tui-tree-widget",
-]
-
-[[package]]
 name = "winapi"
 version = "0.3.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
