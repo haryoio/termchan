@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    url::{reply::ThreadParams, thread::BoardParams},
+    url::thread::BoardParams,
     util::{encoding::utf8_to_sjis_string, time::unix_now_time},
 };
 
