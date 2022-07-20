@@ -2,13 +2,15 @@
 name = "termchan"
 version = "0.2.0"
 edition = "2021"
+authors = ["Haryoiro"]
+description = "ターミナルで動く軽量2chクライアント"
+license = "Apache-2.0"
 
 [workspace]
 members = ["client"]
 
 [dependencies]
 anyhow = "1.0.56"
-async-trait = "0.1.52"
 chrono = "0.4.19"
 chrono-tz = "0.6.1"
 dirs = "4.0.0"
@@ -16,6 +18,7 @@ encoding_rs = "0.8.30"
 futures = "0.3.21"
 lazy_static = "1.4.0"
 percent-encoding = "2.1.0"
+rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { version = "0.11.10", features = ["gzip", "cookies"] }
 serde = "1.0.136"
