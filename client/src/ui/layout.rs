@@ -19,3 +19,13 @@ pub fn single_area(area: Rect) -> Rect {
 
     chunks[0]
 }
+
+pub fn popup_area(area: Rect) -> Rect {
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(100)].as_ref())
+        .vertical_margin(1)
+        .split(area);
+
+    chunks[0]
+}

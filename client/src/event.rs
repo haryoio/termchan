@@ -33,6 +33,7 @@ pub enum Event {
     NextTab,
     ScrollToTop,
     ScrollToBottom,
+    Message(String),
 }
 // send event to event_handler
 pub async fn event_sender() -> Receiver<Command> {
@@ -55,7 +56,7 @@ pub async fn event_sender() -> Receiver<Command> {
     tokio::spawn(async move {
         let tx = tick_tx.clone();
         loop {
-            let mut interval = tokio::time::interval(Duration::from_millis(100));
+            let mut interval = tokio::time::interval(Duration::from_millis(200));
             let _ = tx.send(Command::Tick).await;
             let _ = interval.tick().await;
         }

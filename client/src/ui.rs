@@ -1,4 +1,5 @@
 pub mod layout;
+pub mod popup;
 pub mod stateful_list;
 pub mod stateful_mutex_list;
 
@@ -11,7 +12,7 @@ use tui::{
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Tabs},
     Frame,
 };
 
@@ -38,20 +39,15 @@ pub fn draw<'a, B: Backend>(f: &mut Frame<'_, B>, app: &mut App) {
 
     if app.layout.visible_sidepane {
         let chunks = split_area(chunks[0]);
-        {
-            futures::executor::block_on(draw_left_panel(f, app, chunks[0]));
-        }
-        {
-            futures::executor::block_on(draw_right_panel(f, app, chunks[1]));
-        }
+
+        futures::executor::block_on(draw_left_panel(f, app, chunks[0]));
+        futures::executor::block_on(draw_right_panel(f, app, chunks[1]));
     } else {
         let chunk = single_area(chunks[0]);
-        {
-            futures::executor::block_on(draw_right_panel(f, app, chunk));
-        }
+        futures::executor::block_on(draw_right_panel(f, app, chunk));
     }
 
-    futures::executor::block_on(draw_status_line(f, app, chunks[1]))
+    futures::executor::block_on(draw_status_line(f, app, chunks[1]));
 }
 
 async fn draw_right_panel<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
@@ -367,7 +363,7 @@ async fn draw_settings<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Re
 }
 
 async fn draw_status_line<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
-    let lower_chunk_block = Paragraph::new(Span::from("")).style(
+    let lower_chunk_block = Paragraph::new(Span::from(app.message.clone())).style(
         Style::default()
             .add_modifier(Modifier::BOLD)
             .bg(app.theme.status_bar),
@@ -393,7 +389,7 @@ fn list_item_from_message<'a>(thread: ThreadPost, width: usize) -> ListItem<'a> 
     }
     if let Some(cote) = thread.name.cote {
         header_spans.push(Span::styled(
-            format!("{}", cote),
+            format!("{}   ", cote),
             Style::default()
                 .fg(Color::Gray)
                 .add_modifier(Modifier::BOLD),
@@ -410,7 +406,7 @@ fn list_item_from_message<'a>(thread: ThreadPost, width: usize) -> ListItem<'a> 
     texts.push(Spans::from(header_spans));
     texts.push(Spans::from(vec![
         Span::styled(
-            format!("{}", thread.date.clone()),
+            format!("{}   ", thread.date.clone()),
             Style::default().fg(Color::Gray),
         ),
         Span::styled(thread.id.clone(), Style::default().fg(Color::Gray)),
@@ -469,7 +465,7 @@ fn list_item_from_message<'a>(thread: ThreadPost, width: usize) -> ListItem<'a> 
     texts.push(Spans::from(spans.clone()));
     let mut hr = String::new();
     for _ in 0..width {
-        hr.push('-');
+        hr.push('─');
     }
     texts.push(Spans::from(Span::styled(
         hr,

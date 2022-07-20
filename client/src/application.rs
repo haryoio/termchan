@@ -347,13 +347,16 @@ impl App {
                     Pane::Main => {
                         match self.right_tabs.get() {
                             RightTabItem::Thread(..) => {
-                                self.layout.focus_pane = Pane::Side;
                                 // self.left_tabs.set(LeftTabItem::Bbsmenu);
                             }
                         }
                         Ok(())
                     }
                 }
+            }
+            Event::Message(message) => {
+                self.message = message.clone();
+                Ok(())
             }
             _ => Ok(()),
         }
