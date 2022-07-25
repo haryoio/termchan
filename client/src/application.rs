@@ -10,7 +10,10 @@ use termchan::get::{
 use crate::{
     config::Theme,
     event::Event,
-    state::{LayoutState, LeftTabItem, Pane, RightTabItem, TabsState},
+    state::{
+        layout::{LayoutState, Pane},
+        tab::{LeftTabItem, RightTabItem, TabsState},
+    },
     ui::stateful_list::StatefulList,
 };
 

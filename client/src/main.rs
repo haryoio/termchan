@@ -23,7 +23,7 @@ fn append_file(content: &str) {
         .unwrap();
     file.write_all(content.as_bytes()).unwrap();
 }
-use crate::{event::Event, state::Pane};
+use crate::{event::Event, state::layout::Pane};
 #[tokio::main]
 async fn main() {
     match run().await {

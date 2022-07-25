@@ -20,7 +20,10 @@ use self::layout::{single_area, split_area};
 use crate::{
     application::App,
     config::Theme,
-    state::{LeftTabItem, Pane, RightTabItem, TabsState},
+    state::{
+        layout::Pane,
+        tab::{LeftTabItem, RightTabItem, TabsState},
+    },
 };
 
 pub fn draw<'a, B: Backend>(f: &mut Frame<'_, B>, app: &mut App) {
