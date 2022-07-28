@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 use anyhow::{self, anyhow as any, Ok};
-use reqwest;
+use reqwest::{self, Url};
 
 use crate::{
     get::board_cert::board_cert,
@@ -25,7 +27,7 @@ pub async fn create_thread(
     cookies.add("yuki", "akari");
     cookies.add("READJS", "\"off\"");
 
-    let header = post_header(board_params.clone(), cookies);
+    let header = post_header(Url::from_str(url).unwrap(), cookies);
 
     let res = client
         .post(board_params.build_post())
