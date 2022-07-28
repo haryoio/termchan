@@ -147,6 +147,16 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn test_parse_open2ch_dat() {
+        let url = "http://hayabusa.open2ch.net/livejupiter/";
+        let board = Board::new(url.to_string()).unwrap();
+        let subjects = board.get().await.unwrap();
+        for subject in subjects {
+            println!("{:?}", subject);
+        }
+    }
+
     #[test]
     fn test_parse_dats() {
         let dat = r#"0000000000.dat<>テスト (9999)

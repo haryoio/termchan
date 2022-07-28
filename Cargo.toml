@@ -10,6 +10,7 @@ license = "Apache-2.0"
 members = [".", "client", "migration", "entity"]
 
 [dependencies]
+unicode-segmentation = "1.9.0"
 anyhow = "1.0.56"
 chrono = "0.4.19"
 chrono-tz = "0.6.1"
@@ -20,7 +21,7 @@ lazy_static = "1.4.0"
 percent-encoding = "2.1.0"
 rand = "0.8.5"
 regex = "1.5.5"
-reqwest = { version = "0.11.10", features = ["gzip", "cookies"] }
+reqwest = { version = "0.11.10", features = ["gzip", "cookies", "json"] }
 serde = "1.0.136"
 serde_derive = "1.0.136"
 serde_json = "1.0.79"
@@ -39,6 +40,11 @@ thiserror = "1.0.31"
 dotenv = "0.15.0"
 
 [dependencies.sea-orm]
-aversion = "0.9.1"
+version = "0.9.1"
 features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"]
 default-features = false
+
+
+[target.x86_64-apple-darwin]
+linker = "clang"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
