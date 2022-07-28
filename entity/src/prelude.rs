@@ -4,8 +4,8 @@ pub use super::{
     board::Entity as Board,
     board_bookmark::Entity as BoardBookmark,
     category::Entity as Category,
+    image::Entity as Image,
     menu::Entity as Menu,
     thread::Entity as Thread,
     thread_post::Entity as ThreadPost,
-    thread_post_image::Entity as ThreadPostImage,
 };

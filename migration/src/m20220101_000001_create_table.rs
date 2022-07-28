@@ -21,7 +21,7 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Menu::Url).string().not_null())
+                    .col(ColumnDef::new(Menu::Url).string().not_null().unique_key())
                     .col(ColumnDef::new(Menu::Name).string().not_null())
                     .to_owned(),
             )
@@ -41,7 +41,6 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(Category::Name).string().not_null())
-                    // foreign
                     .col(ColumnDef::new(Category::MenuId).integer().not_null())
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
@@ -66,7 +65,7 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Board::Url).string().not_null())
+                    .col(ColumnDef::new(Board::Url).string().not_null().unique_key())
                     .col(ColumnDef::new(Board::Name).string().not_null())
                     .col(ColumnDef::new(Board::MenuId).integer().not_null())
                     .col(ColumnDef::new(Board::CategoryId).integer().not_null())
@@ -128,8 +127,9 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(ThreadPost::Index).integer().not_null())
                     .col(ColumnDef::new(ThreadPost::Name).string().not_null())
-                    .col(ColumnDef::new(ThreadPost::Hash).string().not_null())
-                    .col(ColumnDef::new(ThreadPost::Message).string().not_null())
+                    .col(ColumnDef::new(ThreadPost::Email).string().not_null())
+                    .col(ColumnDef::new(ThreadPost::PostId).string().not_null())
+                    .col(ColumnDef::new(ThreadPost::Message).json().not_null())
                     .col(ColumnDef::new(ThreadPost::Date).string())
                     .col(ColumnDef::new(ThreadPost::ThreadId).integer().not_null())
                     .foreign_key(
@@ -145,28 +145,17 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(ThreadPostImage::Table)
+                    .table(Image::Table)
                     .if_not_exists()
                     .col(
-                        ColumnDef::new(ThreadPostImage::Id)
+                        ColumnDef::new(Image::Id)
                             .integer()
                             .not_null()
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(ThreadPostImage::Path).string().not_null())
-                    .col(ColumnDef::new(ThreadPostImage::Url).string().not_null())
-                    .col(
-                        ColumnDef::new(ThreadPostImage::ThreadId)
-                            .integer()
-                            .not_null(),
-                    )
-                    .foreign_key(
-                        ForeignKeyCreateStatement::new()
-                            .name("fk_thread_post_image_thread_id")
-                            .from(ThreadPostImage::Table, ThreadPostImage::ThreadId)
-                            .to(Thread::Table, Thread::Id),
-                    )
+                    .col(ColumnDef::new(Image::SavePath).string().not_null())
+                    .col(ColumnDef::new(Image::Url).string().not_null().unique_key())
                     .to_owned(),
             )
             .await?;
@@ -216,7 +205,7 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         // Replace the sample below with your own migration scripts
         manager
-            .drop_table(Table::drop().table(ThreadPostImage::Table).to_owned())
+            .drop_table(Table::drop().table(Image::Table).to_owned())
             .await?;
         manager
             .drop_table(Table::drop().table(ThreadPost::Table).to_owned())

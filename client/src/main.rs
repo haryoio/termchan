@@ -1,5 +1,6 @@
 mod application;
 mod config;
+mod database;
 mod event;
 mod renderer;
 mod state;

@@ -5,7 +5,7 @@ pub mod prelude;
 pub mod board;
 pub mod board_bookmark;
 pub mod category;
+pub mod image;
 pub mod menu;
 pub mod thread;
 pub mod thread_post;
-pub mod thread_post_image;

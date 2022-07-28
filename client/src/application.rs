@@ -11,8 +11,13 @@ use crate::{
     config::Theme,
     event::Event,
     state::{
+        bbsmenu::BbsMenuStateItem,
+        board::BoardStateItem,
+        categories::CategoriesStateItem,
         layout::{LayoutState, Pane},
+        post::ThreadPostStateItem,
         tab::{LeftTabItem, RightTabItem, TabsState},
+        thread::ThreadStateItem,
     },
     ui::stateful_list::StatefulList,
 };
@@ -26,36 +31,28 @@ pub struct App {
 
     pub theme:      Theme,
     pub layout:     LayoutState,
-    pub bbsmenu:    StatefulList<String>,
-    pub categories: StatefulList<CategoryItem>,
-    pub category:   StatefulList<CategoryContent>,
-    pub board:      StatefulList<ThreadSubject>,
-    pub thread:     StatefulList<ThreadPost>,
+    pub bbsmenu:    StatefulList<BbsMenuStateItem>,
+    pub categories: StatefulList<CategoriesStateItem>,
+    pub category:   StatefulList<BoardStateItem>,
+    pub board:      StatefulList<ThreadStateItem>,
+    pub thread:     StatefulList<ThreadPostStateItem>,
 }
 
 impl App {
     pub fn new() -> Self {
         let left_tabs = TabsState::new(vec![LeftTabItem::Bbsmenu]);
         let right_tabs = TabsState::new(vec![]);
-        let layout = LayoutState::new();
-        let categories = StatefulList::with_items(vec![CategoryItem {
-            category_name:    "".to_string(),
-            category_content: vec![],
-        }]);
-        let board = StatefulList::with_items(vec![ThreadSubject {
-            url:        "".to_string(),
-            board_name: "".to_string(),
-            name:       "".to_string(),
-            id:         "".to_string(),
-            count:      0,
-            ikioi:      0.0,
-            created_at: Tokyo.timestamp(0, 0),
-        }]);
-        let category = StatefulList::with_items(vec![CategoryContent {
-            board_name: "".to_string(),
-            url:        "".to_string(),
-        }]);
         let right_pane_items = vec![("".to_string(), "".to_string(), ThreadResponse::default())];
+
+        let layout = LayoutState::new();
+
+        let init_bbsmenu = futures::executor::block_on(BbsMenuStateItem::get()).unwrap();
+
+        let bbsmenu = StatefulList::with_items(init_bbsmenu);
+        let categories = StatefulList::with_items(vec![CategoriesStateItem::default()]);
+        let category = StatefulList::with_items(vec![BoardStateItem::default()]);
+        let board = StatefulList::with_items(vec![ThreadStateItem::default()]);
+        let thread = StatefulList::with_items(vec![ThreadPostStateItem::default()]);
 
         App {
             left_tabs,
@@ -64,48 +61,35 @@ impl App {
             layout,
             message: "".to_string(),
             theme: Theme::default(),
-            bbsmenu: StatefulList::with_items(vec![
-                "https://menu.5ch.net/bbsmenu.json".to_string(),
-                "https://menu.2ch.sc/bbsmenu.html".to_string(),
-            ]),
+            bbsmenu,
             categories,
             category,
             board,
-            thread: StatefulList::with_items(vec![]),
+            thread,
         }
     }
 }
 
 // GET
 impl App {
-    pub async fn get_menu_item(&mut self) -> String {
-        self.bbsmenu
-            .items
-            .get(self.bbsmenu.selected())
-            .unwrap()
-            .clone()
+    pub fn get_menu_id(&mut self) -> i32 {
+        self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id
     }
-    pub async fn get_categories(&self) -> Vec<CategoryItem> {
-        self.categories.items.clone()
+    pub fn get_categories(&self) -> i32 {
+        self.categories.items[self.categories.state.selected().unwrap_or(0)].id
     }
-    // pub async fn get_category(&self) -> Vec<CategoryContent> {
-    //     let category = self.get_categories().await;
-    //     if category.len() <= self.category.state.selected().unwrap() {
-    //         return vec![CategoryContent {
-    //             board_name: "".to_string(),
-    //             url:        "".to_string(),
-    //         }];
-    //     }
-    //     category[self.category.state.selected().unwrap()]
-    //         .category_content
-    //         .clone()
-    // }
-    // pub async fn get_board(&self) -> Vec<ThreadSubject> {
-    //     self.board.items.clone()
-    // }
-    // pub async fn get_thread(&self) -> Vec<ThreadPost> {
-    //     self.thread.items.clone()
-    // }
+    pub fn get_category_id(&self) -> i32 {
+        self.categories.items[self.category.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_board_id(&self) -> i32 {
+        self.category.items[self.category.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_thread_id(&self) -> i32 {
+        self.board.items[self.board.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_thread_post_id(&self) -> i32 {
+        self.thread.items[self.thread.state.selected().unwrap_or(0)].id
+    }
 }
 
 impl App {
@@ -115,11 +99,11 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
-                            LeftTabItem::Bbsmenu => self.update_bbsmenu().await,
+                            LeftTabItem::Bbsmenu => self.update_bbsmenu().await?,
                             LeftTabItem::Categories => self.update_categories().await?,
                             LeftTabItem::Category(..) => self.update_category().await?,
                             LeftTabItem::Board(..) => self.update_board().await?,
-                            LeftTabItem::Settings => {}
+                            LeftTabItem::Settings => (),
                         }
                     }
                     Pane::Main => {
@@ -262,23 +246,17 @@ impl App {
             }
             Event::Right => {
                 if self.layout.focus_pane == Pane::Main {
-                    self.thread.items = self.right_pane_items[self.right_tabs.index + 1]
-                        .2
-                        .clone()
-                        .posts;
+                    let menu_id = self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id;
+                    let category_id =
+                        self.categories.items[self.categories.state.selected().unwrap_or(0)].id;
                     self.right_tabs.next();
                 }
                 Ok(())
             }
             Event::Left => {
                 if self.layout.focus_pane == Pane::Main {
-                    self.thread.items = self.right_pane_items[self.right_tabs.index + 1]
-                        .2
-                        .clone()
-                        .posts;
+                    self.update_thread().await?;
                     self.right_tabs.previous();
-
-                    // println!("{:?}", self.right_pane_items);
                 }
                 Ok(())
             }
@@ -298,15 +276,12 @@ impl App {
                                     let _ = self.update_category().await;
                                     self.layout.focus_pane = Pane::Side;
                                 }
+                                let selected = self.categories.state.selected().unwrap_or(0);
+                                let categ = self.categories.items[selected].clone();
+                                if selected < self.categories.items.len() {
+                                    self.left_tabs
+                                        .history_add(LeftTabItem::Category(categ.name));
 
-                                let categ = self.get_categories().await;
-                                let selected = self.categories.state.selected().unwrap();
-                                if selected < categ.len() {
-                                    {
-                                        self.left_tabs.history_add(LeftTabItem::Category(
-                                            categ[selected].clone().category_name,
-                                        ));
-                                    }
                                     self.left_tabs.next();
                                 }
                             }
@@ -321,7 +296,7 @@ impl App {
                                 .clone();
 
                                 self.left_tabs
-                                    .history_add(LeftTabItem::Board(categ.board_name.clone()));
+                                    .history_add(LeftTabItem::Board(categ.name.clone()));
                                 self.left_tabs.next();
                             }
                             LeftTabItem::Board(..) => {
@@ -365,51 +340,41 @@ impl App {
         }
     }
 
-    pub async fn update_bbsmenu(&mut self) {
-        // let url = self.get_menu_item().await;
+    pub async fn update_bbsmenu(&mut self) -> Result<()> {
+        self.bbsmenu.items = BbsMenuStateItem::get().await?;
+        Ok(())
     }
     pub async fn update_categories(&mut self) -> Result<()> {
-        let url = self.get_menu_item().await;
-        let bbsmenu = Bbsmenu::new(url.clone())?.get().await?;
-        self.categories.items = bbsmenu.menu_list;
+        let menu_id = self.get_menu_id();
+        let categories = CategoriesStateItem::get_by_menu_id(menu_id).await?;
+        self.categories.items = categories;
         Ok(())
     }
     pub async fn update_category(&mut self) -> Result<()> {
-        let categ = self
-            .categories
-            .items
-            .get(self.categories.state.selected().unwrap())
-            .unwrap();
-        self.category.items = categ.category_content.clone();
+        //現在洗濯中のカテゴりID
+        let category_id = self.get_category_id();
+        // カテゴリ内の板一覧
+        let category = BoardStateItem::get_by_category_id(category_id).await?;
+        self.category.items = category;
         Ok(())
     }
     pub async fn update_board(&mut self) -> Result<()> {
-        let board_item = self
-            .category
-            .items
-            .get(self.category.state.selected().unwrap())
-            .unwrap();
-        let board = Board::new(board_item.url.clone())?.get().await?;
-        self.board.items = board;
+        self.category.items[self.category.state.selected().unwrap()]
+            .clone()
+            .fetch()
+            .await?;
+        let board_id = self.get_board_id();
+        self.board.items = ThreadStateItem::get_by_board_id(board_id).await?;
         Ok(())
     }
     pub async fn update_thread(&mut self) -> Result<()> {
-        let thread_item = self
-            .board
-            .items
-            .get(self.board.state.selected().unwrap())
-            .unwrap();
+        self.board.items[self.board.state.selected().unwrap()]
+            .clone()
+            .fetch()
+            .await?;
 
-        let thread = Thread::new(thread_item.url.clone())?.get().await;
-
-        let thread = match thread {
-            Ok(thread) => thread,
-            Err(e) => {
-                self.message = format!("{}", e);
-                ThreadResponse::default()
-            }
-        };
-        self.thread.items = thread.posts;
+        let thread_id = self.get_thread_id();
+        self.thread.items = ThreadPostStateItem::get_by_thread_id(thread_id).await?;
         Ok(())
     }
 }

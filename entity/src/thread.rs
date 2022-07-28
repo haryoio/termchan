@@ -27,8 +27,6 @@ pub enum Relation {
     Board,
     #[sea_orm(has_many = "super::thread_post::Entity")]
     ThreadPost,
-    #[sea_orm(has_many = "super::thread_post_image::Entity")]
-    ThreadPostImage,
 }
 
 impl Related<super::board::Entity> for Entity {
@@ -40,12 +38,6 @@ impl Related<super::board::Entity> for Entity {
 impl Related<super::thread_post::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ThreadPost.def()
-    }
-}
-
-impl Related<super::thread_post_image::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::ThreadPostImage.def()
     }
 }
 

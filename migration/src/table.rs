@@ -52,19 +52,27 @@ pub enum Thread {
 pub enum ThreadPost {
     Table,
     Id,
-    Index,
-    Name,
-    Hash,
-    Message,
-    Date,
+    /// スレッドID データベースのThreadテーブルに対応
     ThreadId,
+    /// ランダムなユーザーID
+    /// データベースのリレーションとは関係ない
+    PostId,
+    /// 投稿番号
+    Index,
+    /// ユーザネーム
+    Name,
+    /// sageとかageとか
+    Email,
+    /// unix time
+    Date,
+    /// 投稿内容
+    Message,
 }
-
 #[derive(Iden)]
-pub enum ThreadPostImage {
+pub enum Image {
     Table,
     Id,
     Url,
-    ThreadId,
-    Path,
+    SavePath,
+    Blob,
 }
