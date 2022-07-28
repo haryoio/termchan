@@ -27,3 +27,12 @@ fmt:
 .PHONY: debug
 debug:
 	export RUST_BACKTRACE=1
+
+.PHONY: re_migration
+re_migration:
+	rm -rf /var/tmp/termchan.db
+	sea-orm-cli migrate down
+	sea-orm-cli migrate up
+	sea-orm-cli generate entity -o entity/src
+	rm -rf entity/src/lib.rs
+	mv entity/src/mod.rs entity/src/lib.rs
