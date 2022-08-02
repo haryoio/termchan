@@ -17,7 +17,6 @@
 | Toggle Sidebar Visibility | Ctrl + b |         |
 | Toggle Bookmark           | Ctrl + d |         |
 
-
 状態用のstructを別途用意する。
 DBから情報を取得し、状態用のstructを生成する関数を作成。
 状態用のStructを状態に適用。

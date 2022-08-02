@@ -5,6 +5,7 @@ mod event;
 mod renderer;
 mod state;
 mod style;
+mod words;
 use std::{
     error::Error,
     io::{self, Write},
@@ -55,13 +56,18 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                     match key {
                         Char('q') => render.exit()?,
                         Ctrl('b') => app.layout.toggle_visible_sidepane(),
-                        Char('\t') => app.layout.toggle_focus_pane(),
+                        Char('\t') => app.layout.next(),
+                        BackTab => app.layout.prev(),
                         Char('r') => {
                             app.update(Event::Get).await?;
                             match app.layout.focus_pane {
                                 Pane::Main => app.update(Event::ScrollToBottom).await?,
                                 Pane::Side => app.update(Event::ScrollToTop).await?,
+                                _ => (),
                             }
+                        }
+                        Char('f') => {
+                            app.update(Event::ToggleBookmark).await?;
                         }
                         Ctrl('j') | Char('g') => app.update(Event::ScrollToBottom).await?,
                         Ctrl('k') | Char('G') => app.update(Event::ScrollToTop).await?,

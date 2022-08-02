@@ -12,8 +12,9 @@ pub enum Menu {
 pub enum Category {
     Table,
     Id,
-    MenuId,
     Name,
+    MCategoryName,
+    MenuId,
 }
 
 #[derive(Iden)]
@@ -22,6 +23,7 @@ pub enum Board {
     Id,
     Name,
     Url,
+    MCBoardName,
     MenuId,
     CategoryId,
 }
@@ -30,10 +32,8 @@ pub enum Board {
 pub enum BoardBookmark {
     Table,
     Id,
-    BoardId,
-    CategoryId,
-    MenuId,
     Rating,
+    BoardId,
 }
 
 #[derive(Iden)]
@@ -52,8 +52,7 @@ pub enum Thread {
 pub enum ThreadPost {
     Table,
     Id,
-    /// スレッドID データベースのThreadテーブルに対応
-    ThreadId,
+
     /// ランダムなユーザーID
     /// データベースのリレーションとは関係ない
     PostId,
@@ -67,6 +66,10 @@ pub enum ThreadPost {
     Date,
     /// 投稿内容
     Message,
+    /// 一位に識別するためのやつ
+    ThreadIdIndex,
+    /// スレッドID データベースのThreadテーブルに対応
+    ThreadId,
 }
 #[derive(Iden)]
 pub enum Image {

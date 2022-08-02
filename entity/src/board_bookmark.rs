@@ -6,31 +6,13 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "board_bookmark")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id:          i32,
-    pub rating:      i32,
-    pub board_id:    i32,
-    pub category_id: i32,
-    pub menu_id:     i32,
+    pub id:       i32,
+    pub rating:   i32,
+    pub board_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::menu::Entity",
-        from = "Column::MenuId",
-        to = "super::menu::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    Menu,
-    #[sea_orm(
-        belongs_to = "super::category::Entity",
-        from = "Column::CategoryId",
-        to = "super::category::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
-    )]
-    Category,
     #[sea_orm(
         belongs_to = "super::board::Entity",
         from = "Column::BoardId",
@@ -39,18 +21,6 @@ pub enum Relation {
         on_delete = "NoAction"
     )]
     Board,
-}
-
-impl Related<super::menu::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Menu.def()
-    }
-}
-
-impl Related<super::category::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Category.def()
-    }
 }
 
 impl Related<super::board::Entity> for Entity {

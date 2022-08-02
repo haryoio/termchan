@@ -1,6 +1,8 @@
 pub mod bbsmenu;
 pub mod board;
+pub mod bookmark;
 pub mod categories;
+pub mod home;
 pub mod layout;
 pub mod post;
 pub mod tab;

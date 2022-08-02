@@ -17,8 +17,6 @@ pub enum Relation {
     Category,
     #[sea_orm(has_many = "super::board::Entity")]
     Board,
-    #[sea_orm(has_many = "super::board_bookmark::Entity")]
-    BoardBookmark,
 }
 
 impl Related<super::category::Entity> for Entity {
@@ -30,12 +28,6 @@ impl Related<super::category::Entity> for Entity {
 impl Related<super::board::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Board.def()
-    }
-}
-
-impl Related<super::board_bookmark::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::BoardBookmark.def()
     }
 }
 

@@ -41,6 +41,12 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(Category::Name).string().not_null())
+                    .col(
+                        ColumnDef::new(Category::MCategoryName)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
                     .col(ColumnDef::new(Category::MenuId).integer().not_null())
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
@@ -65,8 +71,14 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(Board::Url).string().not_null().unique_key())
+                    .col(ColumnDef::new(Board::Url).string().not_null())
                     .col(ColumnDef::new(Board::Name).string().not_null())
+                    .col(
+                        ColumnDef::new(Board::MCBoardName)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
                     .col(ColumnDef::new(Board::MenuId).integer().not_null())
                     .col(ColumnDef::new(Board::CategoryId).integer().not_null())
                     .foreign_key(
@@ -132,6 +144,12 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(ThreadPost::Message).json().not_null())
                     .col(ColumnDef::new(ThreadPost::Date).string())
                     .col(ColumnDef::new(ThreadPost::ThreadId).integer().not_null())
+                    .col(
+                        ColumnDef::new(ThreadPost::ThreadIdIndex)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
                             .name("fk_thread_post_thread_id")
@@ -172,30 +190,17 @@ impl MigrationTrait for Migration {
                             .primary_key(),
                     )
                     .col(ColumnDef::new(BoardBookmark::Rating).integer().not_null())
-                    .col(ColumnDef::new(BoardBookmark::BoardId).integer().not_null())
                     .col(
-                        ColumnDef::new(BoardBookmark::CategoryId)
+                        ColumnDef::new(BoardBookmark::BoardId)
                             .integer()
-                            .not_null(),
+                            .not_null()
+                            .unique_key(),
                     )
-                    .col(ColumnDef::new(BoardBookmark::MenuId).integer().not_null())
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
                             .name("fk_board_bookmark_board_id")
                             .from(BoardBookmark::Table, BoardBookmark::BoardId)
                             .to(Board::Table, Board::Id),
-                    )
-                    .foreign_key(
-                        ForeignKeyCreateStatement::new()
-                            .name("fk_board_bookmark_category_id")
-                            .from(BoardBookmark::Table, BoardBookmark::CategoryId)
-                            .to(Category::Table, Category::Id),
-                    )
-                    .foreign_key(
-                        ForeignKeyCreateStatement::new()
-                            .name("fk_board_bookmark_menu_id")
-                            .from(BoardBookmark::Table, BoardBookmark::MenuId)
-                            .to(Menu::Table, Menu::Id),
                     )
                     .to_owned(),
             )

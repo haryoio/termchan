@@ -1,9 +1,12 @@
-use tui::widgets::ListState;
+use tui::layout::Rect;
+
+use super::mylist::ListState;
 
 #[derive(Debug, Clone)]
 pub struct StatefulList<T> {
-    pub state: ListState,
-    pub items: Vec<T>,
+    pub state:  ListState,
+    pub items:  Vec<T>,
+    pub height: usize,
 }
 
 #[allow(dead_code)]
@@ -12,8 +15,14 @@ impl<T> StatefulList<T> {
         Self {
             state: ListState::default(),
             items,
+            height: 0,
         }
     }
+
+    pub fn set_height(&mut self, height: usize) {
+        self.height = height;
+    }
+
     pub fn next(&mut self) {
         let i = match self.state.selected() {
             Some(i) => {

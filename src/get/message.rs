@@ -412,11 +412,16 @@ where
     fn read_escaped_char(&mut self) -> Token {
         let mut text = String::new();
         text.push(self.ch);
-        let mut ctr = 0;
+
+        self.read_char();
+        if !(self.ch.is_alphanumeric() && self.ch == '#') {
+            return Token::Char(self.ch);
+        }
+        text.push(self.ch);
+
         while self.ch != ';' {
             self.read_char();
             text.push(self.ch);
-            ctr += 1;
         }
 
         if text.starts_with("&#") {
@@ -432,7 +437,7 @@ where
             "&quot;" => Token::Char('"'),
             "&lt;" => Token::Char('<'),
             "&gt;" => Token::Gt,
-            _ => Token::Error(format!("unknown escaped char: {}", text)),
+            _ => Token::Str(text),
         }
     }
 

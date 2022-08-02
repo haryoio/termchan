@@ -3,6 +3,8 @@ use std::fmt::Display;
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub enum LeftTabItem {
+    Home,
+    Bookmarks,
     Bbsmenu,
     Categories,
     Category(Title),
@@ -15,11 +17,12 @@ type Url = String;
 impl Display for LeftTabItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Home => write!(f, "Home"),
+            Self::Bookmarks => write!(f, "Bookmarks"),
             Self::Bbsmenu => write!(f, "BBSmenu"),
             Self::Categories => write!(f, "Categories"),
             Self::Category(title) => write!(f, "{}", title),
             Self::Board(title) => write!(f, "{}", title),
-
             Self::Settings => write!(f, "Settings"),
         }
     }

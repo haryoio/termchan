@@ -46,7 +46,7 @@ impl ThreadStateItem {
                 name:       thread.name.to_string(),
                 count:      thread.count,
                 ikioi:      thread.ikioi.unwrap_or(0.0),
-                updated_at: thread.updated_at.unwrap_or(String::new()),
+                updated_at: thread.updated_at.unwrap_or_default(),
             });
         }
         Ok(thread_state_item)
@@ -67,17 +67,16 @@ impl ThreadStateItem {
                 message: Set(item.message.json_string()),
                 date: Set(Some(item.date.to_string())),
                 email: Set(item.email.to_string()),
+                thread_id_index: Set(format!("{}_{}", self.id, item.index)),
                 ..Default::default()
             });
         }
         let res = ThreadPost::insert_many(new_posts)
             .on_conflict(
-                OnConflict::columns(vec![
-                    thread_post::Column::Index,
-                    thread_post::Column::ThreadId,
-                ])
-                .update_column(thread_post::Column::Message)
-                .to_owned(),
+                OnConflict::column(thread_post::Column::ThreadIdIndex)
+                    // 被アンカー数が変わるので、Messageを更新する必要がある。
+                    .update_columns(vec![thread_post::Column::Message])
+                    .to_owned(),
             )
             .exec(&db)
             .await?;

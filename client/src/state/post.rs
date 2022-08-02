@@ -16,8 +16,9 @@ pub struct ThreadPostStateItem {
     pub index:   i32,
     pub post_id: String,
     pub message: Message,
-    pub date:    Option<String>,
+    pub date:    i64,
     pub email:   Option<String>,
+    pub name:    String,
 }
 
 impl Default for ThreadPostStateItem {
@@ -27,8 +28,9 @@ impl Default for ThreadPostStateItem {
             index:   0,
             post_id: String::new(),
             message: Message::default(),
-            date:    None,
+            date:    0,
             email:   None,
+            name:    String::new(),
         }
     }
 }
@@ -43,13 +45,19 @@ impl ThreadPostStateItem {
         let mut thread_post_state_item = Vec::new();
         for post in posts {
             let message: Message = serde_json::from_str(&post.message)?;
+            let date = post
+                .date
+                .unwrap_or("0".to_string())
+                .parse::<i64>()
+                .unwrap_or(0);
             thread_post_state_item.push(ThreadPostStateItem {
                 id: post.id,
                 index: post.index,
                 post_id: post.post_id.to_string(),
                 message,
-                date: post.date,
+                date,
                 email: Some(post.email),
+                name: post.name.to_string(),
             });
         }
         Ok(thread_post_state_item)

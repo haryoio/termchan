@@ -36,3 +36,7 @@ re_migration:
 	sea-orm-cli generate entity -o entity/src
 	rm -rf entity/src/lib.rs
 	mv entity/src/mod.rs entity/src/lib.rs
+
+.PHONY: rmdata
+rmdata:
+	rm -rf /var/tmp/termchan.db

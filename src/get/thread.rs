@@ -404,8 +404,7 @@ mod tests {
         println!("{:?}", thread);
         let thread_response = thread.get().await.unwrap();
         for post in thread_response.posts {
-            println!("{}", post.message);
-            println!("{:?}", post.message);
+            println!("{}", post.message.json_string());
         }
     }
 
@@ -416,7 +415,7 @@ mod tests {
         println!("{:?}", thread);
         let thread_response = thread.get().await.unwrap();
         for post in thread_response.posts {
-            println!("{:?}", post.message);
+            println!("{}", post.message.json_string());
         }
     }
 }
