@@ -60,7 +60,7 @@ impl App {
         let categories = StatefulList::with_items(vec![CategoriesStateItem::default()]);
         let category = StatefulList::with_items(vec![BoardStateItem::default()]);
         let board = StatefulList::with_items(vec![ThreadStateItem::default()]);
-        let thread = StatefulList::with_items(vec![ThreadPostStateItem::default()]);
+        let thread = StatefulList::with_items(vec![]);
         let home = StatefulList::with_items(vec![
             HomeStateItem::new(HomeItem::Bookmark),
             HomeStateItem::new(HomeItem::AllChannels),
@@ -109,6 +109,9 @@ impl App {
     }
     pub fn get_thread_post_id(&self) -> i32 {
         self.thread.items[self.thread.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_board_id_by_bookmark(&self) -> i32 {
+        self.bookmark.items[self.bookmark.state.selected().unwrap_or(0)].id
     }
 }
 
@@ -312,8 +315,11 @@ impl App {
                             }
                             LeftTabItem::Bookmarks => {
                                 self.layout.focus_pane = Pane::Side;
-                                // self.update_bookmark().await?;
-                                self.layout.focus_pane = Pane::Main;
+                                self.update_board_from_bookmark().await?;
+                                self.left_tabs.history_add(LeftTabItem::Board(
+                                    self.bookmark.items[self.bookmark.selected()].name.clone(),
+                                ));
+                                self.left_tabs.next();
                             }
                             LeftTabItem::Bbsmenu => {
                                 self.layout.focus_pane = Pane::Side;
@@ -351,7 +357,7 @@ impl App {
                                 self.right_tabs
                                     .history_add(RightTabItem::Thread(board.name, board.url));
 
-                                self.layout.toggle_focus_pane();
+                                self.layout.focus_pane = Pane::Main;
                                 self.right_tabs.next();
                             }
                             LeftTabItem::Settings => {
@@ -432,6 +438,17 @@ impl App {
     pub async fn update_bookmark(&mut self) -> Result<()> {
         let bookmarks = BookmarkStateItem::get_all().await?;
         self.bookmark.items = bookmarks;
+        Ok(())
+    }
+
+    pub async fn update_board_from_bookmark(&mut self) -> Result<()> {
+        self.bookmark.items[self.bookmark.selected()]
+            .clone()
+            .fetch()
+            .await?;
+
+        let board_id = self.get_board_id_by_bookmark();
+        self.board.items = ThreadStateItem::get_by_board_id(board_id).await?;
         Ok(())
     }
 

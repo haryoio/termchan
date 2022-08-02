@@ -24,30 +24,31 @@ impl<T> StatefulList<T> {
     }
 
     pub fn next(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i >= self.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
+        // aitem no length - 4 ni narumade offset wo ugokasu
+        // aitem no length - 4 ni nattara select wo ugokasu
+
+        let selected = self.selected();
+        if selected >= self.items.len() - 1 {
+        } else if self.items.len().saturating_sub(3) <= selected {
+            self.state.select(Some(selected + 1));
+        } else if selected <= 4 {
+            self.state.select(Some(selected + 1));
+        } else {
+            self.state.select(Some(selected + 1));
+            self.state.next();
+        }
     }
     pub fn prev(&mut self) {
-        let i = match self.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
-        };
-        self.state.select(Some(i));
+        let selected = self.selected();
+        if self.selected() <= 0 {
+        } else if self.items.len().saturating_sub(3) <= selected {
+            self.state.select(Some(selected - 1));
+        } else if selected <= 4 {
+            self.state.select(Some(selected - 1));
+        } else {
+            self.state.select(Some(selected - 1));
+            self.state.prev();
+        }
     }
     pub fn unselect(&mut self) {
         self.state.select(None);

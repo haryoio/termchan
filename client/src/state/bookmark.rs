@@ -1,4 +1,4 @@
-use entity::{board, board_bookmark, category, menu, prelude::*};
+use entity::{board, board_bookmark, category, menu, prelude::*, thread};
 use eyre::{bail, Error, Result};
 use migration::{
     async_trait::{self, async_trait},
@@ -36,13 +36,6 @@ impl Default for BookmarkStateItem {
         }
     }
 }
-#[derive(FromQueryResult)]
-struct BookmarkQueryResult {
-    id:     i32,
-    name:   String,
-    url:    String,
-    domain: String,
-}
 
 impl BookmarkStateItem {
     pub async fn get_all() -> Result<Vec<BookmarkStateItem>> {
@@ -64,7 +57,7 @@ impl BookmarkStateItem {
                 .unwrap()
                 .to_string();
             bookmarks_state_item.push(BookmarkStateItem {
-                id: bookmark.id,
+                id: bookmark.board_id,
                 name: board.name.to_string(),
                 url,
                 domain,
@@ -108,35 +101,31 @@ impl BookmarkStateItem {
         BoardBookmark::delete_by_id(id).exec(&db).await.unwrap();
         Ok(())
     }
-
-    pub async fn toggle_bookmark_by_board_id(board_id: i32) -> Result<()> {
+    pub async fn fetch(&self) -> Result<()> {
         let db = establish_connection().await?;
-        let board = board_bookmark::Entity::find()
-            .filter(board_bookmark::Column::BoardId.eq(board_id))
-            .one(&db)
+        let res = termchan::get::board::Board::new(self.url.to_string())?
+            .get()
             .await?;
-
-        match board {
-            Some(b) => {
-                // board_bookmarkテーブルから削除
-                BoardBookmark::delete_by_id(b.id).exec(&db).await?;
-            }
-            None => {
-                let new_bookmark = board_bookmark::ActiveModel {
-                    board_id: Set(board_id),
-                    ..Default::default()
-                };
-                BoardBookmark::insert(new_bookmark)
-                    .on_conflict(
-                        OnConflict::column(board_bookmark::Column::BoardId)
-                            .do_nothing()
-                            .to_owned(),
-                    )
-                    .exec(&db)
-                    .await?;
-            }
+        let mut new_threads = vec![];
+        for item in res {
+            new_threads.push(thread::ActiveModel {
+                name: Set(item.name.to_string()),
+                url: Set(item.url.to_string()),
+                count: Set(item.count),
+                ikioi: Set(Some(item.ikioi)),
+                updated_at: Set(Some(item.created_at.to_string())),
+                board_id: Set(self.id),
+                ..Default::default()
+            });
         }
-
+        let res = Thread::insert_many(new_threads)
+            .on_conflict(
+                OnConflict::column(thread::Column::Url)
+                    .update_column(thread::Column::Count)
+                    .to_owned(),
+            )
+            .exec(&db)
+            .await?;
         Ok(())
     }
 }

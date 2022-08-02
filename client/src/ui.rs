@@ -224,7 +224,7 @@ fn draw_bookmarks<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
         .items
         .iter()
         .map(|item| {
-            ListItem::new(format!("{} {}", item.domain, item.name))
+            ListItem::new(format!("{} {}", item.name, item.domain))
                 .style(Style::default().fg(app.theme.text).bg(app.theme.reset))
         })
         .collect::<Vec<_>>();
@@ -247,6 +247,7 @@ fn draw_bbsmenu<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
         .border_type(app.theme.border_type())
         .borders(Borders::ALL)
         .title(" BBSmenu ")
+        .title_alignment(Alignment::Center)
         .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
 
     let items = app
@@ -371,7 +372,7 @@ fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
             let mut last_row = thread.updated_at.to_string();
             for _ in last_row.len()
                 ..width
-                    - format!("{:>4} {:.2}", &thread.count.to_string(), thread.ikioi)
+                    - format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string())
                         .as_str()
                         .len()
                     - 4
@@ -380,7 +381,7 @@ fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
             }
             // TODO: 勢いによって色を変える
             last_row
-                .push_str(format!("{:>4} {:.2}", &thread.count.to_string(), thread.ikioi).as_str());
+                .push_str(format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string()).as_str());
 
             texts.push(Spans::from(Span::styled(
                 last_row,

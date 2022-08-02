@@ -40,3 +40,7 @@ re_migration:
 .PHONY: rmdata
 rmdata:
 	rm -rf /var/tmp/termchan.db
+
+.PHONY: db
+db:
+	sqlite3 /var/tmp/termchan.db
