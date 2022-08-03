@@ -69,6 +69,9 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                         Char('f') => {
                             app.update(Event::ToggleBookmark).await?;
                         }
+                        Ctrl('f') => {
+                            app.update(Event::ToggleFilter).await?;
+                        }
                         Ctrl('j') | Char('g') => app.update(Event::ScrollToBottom).await?,
                         Ctrl('k') | Char('G') => app.update(Event::ScrollToTop).await?,
                         Char('j') | Down => app.update(Event::Down).await?,

@@ -9,9 +9,8 @@ use unicode_width::UnicodeWidthStr;
 
 #[derive(Debug, Clone, Default)]
 pub struct ListState {
-    offset:   usize,
-    selected: Option<usize>,
-    pub area: Rect,
+    pub offset: usize,
+    selected:   Option<usize>,
 }
 
 impl ListState {

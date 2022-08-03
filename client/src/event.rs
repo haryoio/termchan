@@ -1,5 +1,6 @@
 use std::{io, time::Duration};
 
+use derive_more::{Add, Display};
 use termion::{
     event::{Event as TermionEvent, Key},
     input::TermRead,
@@ -32,6 +33,7 @@ pub enum Event {
     FocusNextPane,
     FocusPrevPane,
     ToggleBookmark,
+    ToggleFilter,
     BackTab,
     NextTab,
     ScrollToTop,
@@ -91,3 +93,31 @@ pub async fn event_sender() -> Receiver<Command> {
 //         }
 //     }
 // }
+
+#[derive(Debug, Clone, Display)]
+pub enum Sort {
+    #[display(fmt = "スレ順({})", _0)]
+    None(Order),
+    #[display(fmt = "勢い({})", _0)]
+    Ikioi(Order),
+    #[display(fmt = "新しい({})", _0)]
+    Latest(Order),
+    #[display(fmt = "既読({})", _0)]
+    AlreadyRead(Order),
+}
+
+impl Default for Sort {
+    fn default() -> Self {
+        Sort::None(Order::Asc)
+    }
+}
+
+#[derive(Debug, Clone, Display)]
+pub enum Order {
+    #[display(fmt = "昇順")]
+    Asc,
+    #[display(fmt = "降順")]
+    Desc,
+}
+
+pub enum Filter {}

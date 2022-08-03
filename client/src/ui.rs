@@ -2,8 +2,7 @@ pub mod layout;
 pub mod mylist;
 pub mod popup;
 pub mod stateful_list;
-pub mod stateful_mutex_list;
-use std::fmt::Display;
+use std::{fmt::Display, vec};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use rayon::prelude::*;
@@ -29,6 +28,7 @@ use crate::{
         layout::Pane,
         post::ThreadPostStateItem,
         tab::{LeftTabItem, RightTabItem, TabsState},
+        thread::ThreadStateItem,
     },
 };
 
@@ -73,10 +73,12 @@ fn draw_right_panel<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
         .constraints([Constraint::Length(1), Constraint::Min(2)].as_ref())
         .horizontal_margin(1)
         .split(area);
+
     let top_block = Block::default()
         .border_type(app.theme.border_type())
         .borders(Borders::RIGHT | Borders::LEFT)
         .style(block_style);
+
     f.render_widget(top_block, area);
 
     let tab_chunk = layout[0];
@@ -88,6 +90,7 @@ fn draw_right_panel<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
         .border_type(app.theme.border_type())
         .borders(Borders::TOP)
         .style(block_style);
+
     f.render_widget(block, content_chunk);
     draw_thread(f, &mut app.clone(), content_chunk);
 }
@@ -106,6 +109,7 @@ fn draw_left_panel<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) 
         .constraints([Constraint::Length(1), Constraint::Min(2)].as_ref())
         .horizontal_margin(1)
         .split(area);
+
     let top_block = Block::default()
         .border_type(app.theme.border_type())
         .borders(Borders::LEFT)
@@ -242,7 +246,6 @@ fn draw_bookmarks<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
 }
 
 fn draw_bbsmenu<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
-    app.bbsmenu.set_height(area.height.into());
     let block = Block::default()
         .border_type(app.theme.border_type())
         .borders(Borders::ALL)
@@ -295,7 +298,6 @@ fn draw_categories<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) 
                 .bg(app.theme.reset),
         )
         .highlight_symbol(&app.theme.active_item_symbol);
-    app.categories.set_height(area.height.into());
     f.render_stateful_widget(list, area, &mut app.categories.state.clone());
 }
 
@@ -334,7 +336,6 @@ fn draw_category<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
                 .bg(app.theme.reset),
         )
         .highlight_symbol(&app.theme.active_item_symbol);
-    app.category.set_height(area.height.into());
     f.render_stateful_widget(list, area, &mut app.category.state.clone());
 }
 
@@ -346,53 +347,43 @@ fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
         .title_alignment(Alignment::Center)
         .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
 
-    let items = app
-        .board
-        .items
-        .iter()
-        .map(|thread| {
-            let width = area.width as usize;
-            // let frame_width = f.size().width as usize;
-            let mut row_size = 0;
-            let mut row = String::new();
-            let mut texts = Vec::new();
-
-            // スレッド作成時刻
-            for (_, c) in thread.name.chars().enumerate() {
-                row.push(c);
-                row_size += c.len_utf8();
-                if row_size > width {
-                    texts.push(Spans::from(format!("{}", row)));
-                    row = String::new();
-                    row_size = 0;
+    let mut items = app.board.items.clone();
+    let sort_type = app.get_sort_order();
+    items.sort_by(|a, b| {
+        match sort_type.clone() {
+            crate::event::Sort::None(order) => {
+                match order {
+                    crate::event::Order::Asc => a.id.cmp(&b.id),
+                    crate::event::Order::Desc => b.id.cmp(&a.id),
                 }
             }
-
-            texts.push(Spans::from(format!("{}", row)));
-            let mut last_row = thread.updated_at.to_string();
-            for _ in last_row.len()
-                ..width
-                    - format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string())
-                        .as_str()
-                        .len()
-                    - 4
-            {
-                last_row.push(' ');
+            crate::event::Sort::Ikioi(order) => {
+                match order {
+                    crate::event::Order::Asc => a.ikioi.partial_cmp(&b.ikioi).unwrap(),
+                    crate::event::Order::Desc => b.ikioi.partial_cmp(&a.ikioi).unwrap(),
+                }
             }
-            // TODO: 勢いによって色を変える
-            last_row
-                .push_str(format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string()).as_str());
+            crate::event::Sort::Latest(order) => {
+                match order {
+                    crate::event::Order::Asc => a.updated_at.partial_cmp(&b.updated_at).unwrap(),
+                    crate::event::Order::Desc => b.updated_at.partial_cmp(&a.updated_at).unwrap(),
+                }
+            }
+            crate::event::Sort::AlreadyRead(order) => {
+                match order {
+                    crate::event::Order::Asc => a.before_read.partial_cmp(&b.before_read).unwrap(),
+                    crate::event::Order::Desc => b.before_read.partial_cmp(&a.before_read).unwrap(),
+                }
+            }
+        }
+    });
 
-            texts.push(Spans::from(Span::styled(
-                last_row,
-                Style::default().fg(Color::Gray),
-            )));
-
-            let item =
-                ListItem::new(texts).style(Style::default().fg(app.theme.text).bg(app.theme.reset));
-            item
-        })
+    let items = items
+        .clone()
+        .iter()
+        .map(|thread| list_item_from_board(thread.clone(), area.width as usize))
         .collect::<Vec<_>>();
+
     let list = List::new(items)
         .block(block)
         .highlight_style(
@@ -401,7 +392,7 @@ fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
                 .bg(app.theme.reset),
         )
         .highlight_symbol(&app.theme.active_item_symbol);
-    app.board.set_height(area.height.into());
+
     f.render_stateful_widget(list, area, &mut app.board.state.clone());
 }
 
@@ -417,7 +408,7 @@ fn draw_thread<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
     let items = posts
         .par_iter()
         .map(|post| {
-            let item = list_item_from_message(post.clone(), area.width.into()).clone();
+            let item = list_item_from_message(post.clone(), area.width as usize).clone();
             item
         })
         .collect::<Vec<_>>();
@@ -430,7 +421,6 @@ fn draw_thread<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
                 .bg(app.theme.reset),
         )
         .highlight_symbol(&app.theme.active_item_symbol);
-    app.thread.set_height(area.height.into());
     f.render_stateful_widget(list, area, &mut app.thread.state.clone());
 }
 
@@ -444,12 +434,70 @@ fn draw_settings<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
 }
 
 fn draw_status_line<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
-    let lower_chunk_block = Paragraph::new(Span::from(app.message.clone())).style(
+    let mut lines = vec![];
+
+    // スレ一覧のときのソートメニュー
+    if matches!(app.left_tabs.get_current(), LeftTabItem::Board(_)) {
+        //　ソートのオーダーをここに
+        lines.push(Span::styled(
+            " 並び替え: Ctrl+f",
+            Style::default().bg(Color::White).fg(Color::Black),
+        ));
+        lines.push(Span::styled(
+            format!(" {} ", app.get_sort_order()),
+            Style::default().bg(Color::LightBlue),
+        ));
+    }
+
+    lines.push(Span::styled(
+        app.message.clone(),
         Style::default()
             .add_modifier(Modifier::BOLD)
             .bg(app.theme.status_bar),
-    );
-    f.render_widget(lower_chunk_block, area);
+    ));
+
+    let paragraph = Paragraph::new(Spans::from(lines));
+
+    f.render_widget(paragraph, area);
+}
+
+fn list_item_from_board<'a>(thread: ThreadStateItem, width: usize) -> ListItem<'a> {
+    // let frame_width = f.size().width as usize;
+    let mut row_size = 0;
+    let mut row = String::new();
+    let mut texts = Vec::new();
+
+    // スレッド作成時刻
+    for (_, c) in thread.name.chars().enumerate() {
+        row.push(c);
+        row_size += c.len_utf8();
+        if row_size > width {
+            texts.push(Spans::from(format!("{}", row)));
+            row = String::new();
+            row_size = 0;
+        }
+    }
+
+    texts.push(Spans::from(format!("{}", row)));
+    let mut last_row = thread.updated_at.to_string();
+    for _ in last_row.len()
+        ..width
+            - format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string())
+                .as_str()
+                .len()
+            - 4
+    {
+        last_row.push(' ');
+    }
+    // TODO: 勢いによって色を変える
+    last_row.push_str(format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string()).as_str());
+
+    texts.push(Spans::from(Span::styled(
+        last_row,
+        Style::default().fg(Color::Gray),
+    )));
+
+    ListItem::new(texts)
 }
 
 fn list_item_from_message<'a>(thread: ThreadPostStateItem, width: usize) -> ListItem<'a> {

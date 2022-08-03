@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)]
 pub enum LeftTabItem {
     Home,
@@ -77,6 +77,7 @@ where
     pub fn history_add(&mut self, title: T) {
         self.titles.push(title);
     }
+
     pub fn hidtory_remove(&mut self) {
         if self.titles.len() >= 2 {
             self.titles.pop();
@@ -99,5 +100,9 @@ where
         } else {
             self.index = self.titles.len() - 1;
         }
+    }
+
+    pub fn get_current(&self) -> T {
+        self.titles[self.index].clone()
     }
 }

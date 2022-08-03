@@ -4,9 +4,9 @@ use super::mylist::ListState;
 
 #[derive(Debug, Clone)]
 pub struct StatefulList<T> {
-    pub state:  ListState,
-    pub items:  Vec<T>,
-    pub height: usize,
+    pub state:      ListState,
+    pub items:      Vec<T>,
+    pub loop_items: bool,
 }
 
 #[allow(dead_code)]
@@ -15,12 +15,8 @@ impl<T> StatefulList<T> {
         Self {
             state: ListState::default(),
             items,
-            height: 0,
+            loop_items: false,
         }
-    }
-
-    pub fn set_height(&mut self, height: usize) {
-        self.height = height;
     }
 
     pub fn next(&mut self) {
@@ -29,6 +25,12 @@ impl<T> StatefulList<T> {
 
         let selected = self.selected();
         if selected >= self.items.len() - 1 {
+            if self.loop_items {
+                self.state.offset = 0;
+                self.state.select(Some(0));
+            } else {
+                return;
+            }
         } else if self.items.len().saturating_sub(3) <= selected {
             self.state.select(Some(selected + 1));
         } else if selected <= 4 {
@@ -38,9 +40,20 @@ impl<T> StatefulList<T> {
             self.state.next();
         }
     }
+
+    pub fn loop_items(&mut self, loop_items: bool) -> &mut Self {
+        self.loop_items = loop_items;
+        self
+    }
+
     pub fn prev(&mut self) {
         let selected = self.selected();
+
         if self.selected() <= 0 {
+            if self.loop_items {
+                self.state.offset = 8;
+                self.state.select(Some(self.items.len() - 1));
+            }
         } else if self.items.len().saturating_sub(3) <= selected {
             self.state.select(Some(selected - 1));
         } else if selected <= 4 {
@@ -55,5 +68,10 @@ impl<T> StatefulList<T> {
     }
     pub fn selected(&self) -> usize {
         self.state.selected().unwrap_or(0)
+    }
+
+    pub fn set_items(&mut self, items: Vec<T>) {
+        self.items = items;
+        self.state.offset = 0;
     }
 }

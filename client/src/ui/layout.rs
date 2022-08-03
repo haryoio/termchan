@@ -20,6 +20,16 @@ pub fn single_area(area: Rect) -> Rect {
     chunks[0]
 }
 
+pub fn split_area_vertical(area: Rect) -> Vec<Rect> {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(5), Constraint::Length(10)].as_ref())
+        .horizontal_margin(1)
+        .split(area);
+
+    chunks
+}
+
 pub fn popup_area(area: Rect) -> Rect {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)

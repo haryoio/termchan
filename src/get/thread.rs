@@ -13,13 +13,14 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct ThreadDetail {
-    pub now:   i64,
-    pub sub:   String,
-    pub board: String,
-    pub dat:   i64,
-    pub count: usize,
-    pub title: String,
-    pub url:   String,
+    pub now:      i64,
+    pub sub:      String,
+    pub board:    String,
+    pub dat:      i64,
+    pub count:    usize,
+    pub title:    String,
+    pub url:      String,
+    pub stopdone: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -129,6 +130,7 @@ fn parse_fivenet_json<'a>(json: ThreadJson, url: &'a str) -> Result<ThreadRespon
             dat,
             title: json.thread.5,
             url: url.to_string(),
+            stopdone: false,
         },
         posts:  thread_posts,
     })
@@ -205,6 +207,7 @@ pub fn parse_dat<'a>(dat: &'a str, url: &'a str) -> Result<ThreadResponse> {
             board,
             dat: thread_id,
             count: posts.len(),
+            stopdone: false,
         },
         posts,
     })
@@ -235,13 +238,14 @@ impl IdCounter {
 impl Default for ThreadDetail {
     fn default() -> Self {
         ThreadDetail {
-            now:   0,
-            sub:   "".to_string(),
-            board: "".to_string(),
-            dat:   0,
-            count: 0,
-            title: "".to_string(),
-            url:   "".to_string(),
+            now:      0,
+            sub:      "".to_string(),
+            board:    "".to_string(),
+            dat:      0,
+            count:    0,
+            title:    "".to_string(),
+            url:      "".to_string(),
+            stopdone: false,
         }
     }
 }

@@ -45,6 +45,12 @@ pub enum Thread {
     Count,
     Ikioi,
     UpdatedAt,
+    /// 読み込んだことがあるか
+    IsRead,
+    /// Dat落ち
+    Stopdone,
+    /// ここまで読んだ
+    BeforeRead,
     BoardId,
 }
 

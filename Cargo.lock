@@ -41,17 +41,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
-name = "alt_serde_derive"
-version = "1.0.119"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "629ddaf5b2675d9a27e9521a88870f8edea113e4a83d6d5178268b0d70e9a9a3"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "ansi_term"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -458,7 +447,6 @@ dependencies = [
 name = "client"
 version = "0.1.0"
 dependencies = [
- "alt_serde_derive",
  "anyhow",
  "chrono",
  "chrono-tz",
@@ -481,7 +469,7 @@ dependencies = [
  "termion-input-tokio",
  "tokio",
  "tui",
- "tui-tree-widget",
+ "tui-textarea",
  "unicode-width",
 ]
 
@@ -3324,13 +3312,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "tui-tree-widget"
-version = "0.9.0"
+name = "tui-textarea"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0390703e72885fd3b55ab9f767c753f50793e54b88182c1bcb658e6f85b9b0eb"
+checksum = "9a9b41afefbaf2c2e9628758b2862caf791898daedbe1773d151e3d0279286c3"
 dependencies = [
+ "crossterm 0.23.2",
  "tui",
- "unicode-width",
 ]
 
 [[package]]

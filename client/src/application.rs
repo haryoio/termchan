@@ -9,7 +9,7 @@ use termchan::get::{
 
 use crate::{
     config::Theme,
-    event::Event,
+    event::{Event, Order, Sort},
     state::{
         bbsmenu::BbsMenuStateItem,
         board::BoardStateItem,
@@ -39,6 +39,8 @@ pub struct App {
     pub category:   StatefulList<BoardStateItem>,
     pub board:      StatefulList<ThreadStateItem>,
     pub thread:     StatefulList<ThreadPostStateItem>,
+
+    pub sort: StatefulList<Sort>,
 }
 
 impl App {
@@ -68,6 +70,19 @@ impl App {
         ]);
         let bookmark = StatefulList::with_items(vec![BookmarkStateItem::default()]);
 
+        let sort = StatefulList::with_items(vec![
+            Sort::None(Order::Asc),
+            Sort::None(Order::Desc),
+            Sort::Ikioi(Order::Asc),
+            Sort::Ikioi(Order::Desc),
+            Sort::Latest(Order::Asc),
+            Sort::Latest(Order::Desc),
+            Sort::AlreadyRead(Order::Asc),
+            Sort::AlreadyRead(Order::Desc),
+        ])
+        .loop_items(true)
+        .clone();
+
         App {
             left_tabs,
             right_tabs,
@@ -81,6 +96,7 @@ impl App {
             category,
             board,
             thread,
+            sort,
         }
     }
 }
@@ -112,6 +128,10 @@ impl App {
     }
     pub fn get_board_id_by_bookmark(&self) -> i32 {
         self.bookmark.items[self.bookmark.state.selected().unwrap_or(0)].id
+    }
+
+    pub fn get_sort_order(&self) -> Sort {
+        self.sort.items[self.sort.state.selected().unwrap_or(0)].clone()
     }
 }
 
@@ -427,6 +447,10 @@ impl App {
                 }
                 Ok(())
             }
+            Event::ToggleFilter => {
+                self.sort.next();
+                Ok(())
+            }
             _ => Ok(()),
         }
     }
@@ -437,7 +461,7 @@ impl App {
 
     pub async fn update_bookmark(&mut self) -> Result<()> {
         let bookmarks = BookmarkStateItem::get_all().await?;
-        self.bookmark.items = bookmarks;
+        self.bookmark.set_items(bookmarks);
         Ok(())
     }
 
@@ -448,12 +472,13 @@ impl App {
             .await?;
 
         let board_id = self.get_board_id_by_bookmark();
-        self.board.items = ThreadStateItem::get_by_board_id(board_id).await?;
+        self.board
+            .set_items(ThreadStateItem::get_by_board_id(board_id).await?);
         Ok(())
     }
 
     pub async fn update_bbsmenu(&mut self) -> Result<()> {
-        self.bbsmenu.items = BbsMenuStateItem::get().await?;
+        self.bbsmenu.set_items(BbsMenuStateItem::get().await?);
         Ok(())
     }
 
@@ -462,7 +487,7 @@ impl App {
 
         let menu_id = self.get_menu_id();
         let categories = CategoriesStateItem::get_by_menu_id(menu_id).await?;
-        self.categories.items = categories;
+        self.categories.set_items(categories);
         Ok(())
     }
 
@@ -471,7 +496,7 @@ impl App {
         let category_id = self.get_category_id();
         // カテゴリ内の板一覧
         let category = BoardStateItem::get_by_category_id(category_id).await?;
-        self.category.items = category;
+        self.category.set_items(category);
         Ok(())
     }
 
@@ -481,7 +506,8 @@ impl App {
             .fetch()
             .await?;
         let board_id = self.get_board_id();
-        self.board.items = ThreadStateItem::get_by_board_id(board_id).await?;
+        self.board
+            .set_items(ThreadStateItem::get_by_board_id(board_id).await?);
         Ok(())
     }
 
@@ -492,7 +518,8 @@ impl App {
             .await?;
 
         let thread_id = self.get_thread_id();
-        self.thread.items = ThreadPostStateItem::get_by_thread_id(thread_id).await?;
+        self.thread
+            .set_items(ThreadPostStateItem::get_by_thread_id(thread_id).await?);
         Ok(())
     }
 }

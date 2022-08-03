@@ -4,23 +4,32 @@ use migration::{
     async_trait::{self, async_trait},
     OnConflict,
 };
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    sea_query::{Expr, Value},
+    ActiveModelTrait,
+    ColumnTrait,
+    EntityTrait,
+    QueryFilter,
+    Set,
+};
 
 use crate::database::connect::establish_connection;
 
 #[derive(Debug, Clone)]
 pub struct BoardStateItem {
-    pub id:   i32,
-    pub url:  String,
-    pub name: String,
+    pub id:      i32,
+    pub url:     String,
+    pub name:    String,
+    pub is_read: bool,
 }
 
 impl Default for BoardStateItem {
     fn default() -> Self {
         BoardStateItem {
-            id:   0,
-            url:  String::new(),
-            name: String::new(),
+            id:      0,
+            url:     String::new(),
+            name:    String::new(),
+            is_read: false,
         }
     }
 }
@@ -35,9 +44,10 @@ impl BoardStateItem {
         let mut board_state_item = Vec::new();
         for board in boards {
             board_state_item.push(BoardStateItem {
-                id:   board.id,
-                url:  board.url.to_string(),
-                name: board.name.to_string(),
+                id:      board.id,
+                url:     board.url.to_string(),
+                name:    board.name.to_string(),
+                is_read: false,
             });
         }
         Ok(board_state_item)
@@ -57,13 +67,27 @@ impl BoardStateItem {
                 ikioi: Set(Some(item.ikioi)),
                 updated_at: Set(Some(item.created_at.to_string())),
                 board_id: Set(self.id),
+                stopdone: Set(false),
+                is_read: Set(self.is_read),
                 ..Default::default()
             });
         }
+
+        // 同じボードIDのスレッドをすべてDAT落ち判定
+        Thread::update_many()
+            .filter(thread::Column::BoardId.eq(self.id))
+            .col_expr(
+                thread::Column::Stopdone,
+                Expr::value(Value::Bool(Some(true))),
+            )
+            .exec(&db)
+            .await?;
+
+        /// Dat落ちしていないスレッドはDat落ちが解除される。
         let res = Thread::insert_many(new_threads)
             .on_conflict(
                 OnConflict::column(thread::Column::Url)
-                    .update_column(thread::Column::Count)
+                    .update_columns(vec![thread::Column::Count])
                     .to_owned(),
             )
             .exec(&db)

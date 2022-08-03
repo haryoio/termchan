@@ -8,25 +8,31 @@ use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 
 use crate::database::connect::establish_connection;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct ThreadStateItem {
-    pub id:         i32,
-    pub url:        String,
-    pub name:       String,
-    pub count:      i32,
-    pub ikioi:      f64,
-    pub updated_at: String,
+    pub id:          i32,
+    pub url:         String,
+    pub name:        String,
+    pub count:       i32,
+    pub ikioi:       f64,
+    pub updated_at:  String,
+    pub is_read:     bool,
+    pub stopdone:    bool,
+    pub before_read: i32,
 }
 
 impl Default for ThreadStateItem {
     fn default() -> Self {
         ThreadStateItem {
-            id:         0,
-            url:        String::new(),
-            name:       String::new(),
-            count:      0,
-            ikioi:      0.0,
-            updated_at: String::new(),
+            id:          0,
+            url:         String::new(),
+            name:        String::new(),
+            count:       0,
+            ikioi:       0.0,
+            updated_at:  String::new(),
+            is_read:     false,
+            stopdone:    false,
+            before_read: 0,
         }
     }
 }
@@ -41,12 +47,15 @@ impl ThreadStateItem {
         let mut thread_state_item = Vec::new();
         for thread in threads {
             thread_state_item.push(ThreadStateItem {
-                id:         thread.id,
-                url:        thread.url.to_string(),
-                name:       thread.name.to_string(),
-                count:      thread.count,
-                ikioi:      thread.ikioi.unwrap_or(0.0),
-                updated_at: thread.updated_at.unwrap_or_default(),
+                id:          thread.id,
+                url:         thread.url.to_string(),
+                name:        thread.name.to_string(),
+                count:       thread.count,
+                ikioi:       thread.ikioi.unwrap_or(0.0),
+                updated_at:  thread.updated_at.unwrap_or_default(),
+                is_read:     thread.is_read,
+                stopdone:    thread.stopdone,
+                before_read: thread.before_read,
             });
         }
         Ok(thread_state_item)
@@ -71,6 +80,7 @@ impl ThreadStateItem {
                 ..Default::default()
             });
         }
+
         let res = ThreadPost::insert_many(new_posts)
             .on_conflict(
                 OnConflict::column(thread_post::Column::ThreadIdIndex)

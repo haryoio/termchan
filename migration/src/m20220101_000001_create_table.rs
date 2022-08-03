@@ -114,6 +114,24 @@ impl MigrationTrait for Migration {
                     .col(ColumnDef::new(Thread::Url).string().not_null().unique_key())
                     .col(ColumnDef::new(Thread::Count).integer().not_null())
                     .col(ColumnDef::new(Thread::Ikioi).float())
+                    .col(
+                        ColumnDef::new(Thread::IsRead)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(Thread::Stopdone)
+                            .boolean()
+                            .not_null()
+                            .default(false),
+                    )
+                    .col(
+                        ColumnDef::new(Thread::BeforeRead)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
                     .col(ColumnDef::new(Thread::UpdatedAt).timestamp_with_time_zone())
                     .col(ColumnDef::new(Thread::BoardId).integer().not_null())
                     .foreign_key(
