@@ -9,100 +9,130 @@ use termchan::get::{
 
 use crate::{
     config::Theme,
-    event::Event,
-    state::{LayoutState, LeftTabItem, Pane, RightTabItem, TabsState},
+    event::{Event, Order, Sort},
+    state::{
+        bbsmenu::BbsMenuStateItem,
+        board::BoardStateItem,
+        bookmark::BookmarkStateItem,
+        categories::CategoriesStateItem,
+        home::{HomeItem, HomeStateItem},
+        layout::{LayoutState, Pane},
+        post::ThreadPostStateItem,
+        tab::{LeftTabItem, RightTabItem, TabsState},
+        thread::ThreadStateItem,
+    },
     ui::stateful_list::StatefulList,
 };
 
 #[derive(Clone)]
 pub struct App {
-    pub message:          String,
-    pub right_tabs:       TabsState<RightTabItem>,
-    pub left_tabs:        TabsState<LeftTabItem>,
-    pub right_pane_items: Vec<(String, String, ThreadResponse)>,
+    pub message:    String,
+    pub right_tabs: TabsState<RightTabItem>,
+    pub left_tabs:  TabsState<LeftTabItem>,
 
     pub theme:      Theme,
     pub layout:     LayoutState,
-    pub bbsmenu:    StatefulList<String>,
-    pub categories: StatefulList<CategoryItem>,
-    pub category:   StatefulList<CategoryContent>,
-    pub board:      StatefulList<ThreadSubject>,
-    pub thread:     StatefulList<ThreadPost>,
+    pub home:       StatefulList<HomeStateItem>,
+    pub bookmark:   StatefulList<BookmarkStateItem>,
+    pub bbsmenu:    StatefulList<BbsMenuStateItem>,
+    pub categories: StatefulList<CategoriesStateItem>,
+    pub category:   StatefulList<BoardStateItem>,
+    pub board:      StatefulList<ThreadStateItem>,
+    pub thread:     StatefulList<ThreadPostStateItem>,
+
+    pub sort: StatefulList<Sort>,
 }
 
 impl App {
     pub fn new() -> Self {
-        let left_tabs = TabsState::new(vec![LeftTabItem::Bbsmenu]);
+        let left_tabs = TabsState::new(vec![LeftTabItem::Home]);
         let right_tabs = TabsState::new(vec![]);
+
         let layout = LayoutState::new();
-        let categories = StatefulList::with_items(vec![CategoryItem {
-            category_name:    "".to_string(),
-            category_content: vec![],
-        }]);
-        let board = StatefulList::with_items(vec![ThreadSubject {
-            url:        "".to_string(),
-            board_name: "".to_string(),
-            name:       "".to_string(),
-            id:         "".to_string(),
-            count:      0,
-            ikioi:      0.0,
-            created_at: Tokyo.timestamp(0, 0),
-        }]);
-        let category = StatefulList::with_items(vec![CategoryContent {
-            board_name: "".to_string(),
-            url:        "".to_string(),
-        }]);
-        let right_pane_items = vec![("".to_string(), "".to_string(), ThreadResponse::default())];
+
+        // BBS Menuを DBに登録。
+        futures::executor::block_on(BbsMenuStateItem::init(vec![
+            "https://menu.5ch.net/bbsmenu.json".to_string(),
+            "https://menu.open2ch.net/bbsmenu.html".to_string(),
+        ]));
+
+        //  DB中のMenuを取得。
+        let init_bbsmenu = futures::executor::block_on(BbsMenuStateItem::get()).unwrap();
+        let bbsmenu = StatefulList::with_items(init_bbsmenu);
+        let categories = StatefulList::with_items(vec![CategoriesStateItem::default()]);
+        let category = StatefulList::with_items(vec![BoardStateItem::default()]);
+        let board = StatefulList::with_items(vec![ThreadStateItem::default()]);
+        let thread = StatefulList::with_items(vec![]);
+        let home = StatefulList::with_items(vec![
+            HomeStateItem::new(HomeItem::Bookmark),
+            HomeStateItem::new(HomeItem::AllChannels),
+            HomeStateItem::new(HomeItem::Settings),
+        ]);
+        let bookmark = StatefulList::with_items(vec![BookmarkStateItem::default()]);
+
+        let sort = StatefulList::with_items(vec![
+            Sort::None(Order::Asc),
+            Sort::None(Order::Desc),
+            Sort::Ikioi(Order::Asc),
+            Sort::Ikioi(Order::Desc),
+            Sort::Latest(Order::Asc),
+            Sort::Latest(Order::Desc),
+            Sort::AlreadyRead(Order::Asc),
+            Sort::AlreadyRead(Order::Desc),
+        ])
+        .loop_items(true)
+        .clone();
 
         App {
             left_tabs,
             right_tabs,
-            right_pane_items,
             layout,
             message: "".to_string(),
             theme: Theme::default(),
-            bbsmenu: StatefulList::with_items(vec![
-                "https://menu.5ch.net/bbsmenu.json".to_string(),
-                "https://menu.2ch.sc/bbsmenu.html".to_string(),
-            ]),
+            home,
+            bookmark,
+            bbsmenu,
             categories,
             category,
             board,
-            thread: StatefulList::with_items(vec![]),
+            thread,
+            sort,
         }
     }
 }
 
 // GET
 impl App {
-    pub async fn get_menu_item(&mut self) -> String {
-        self.bbsmenu
-            .items
-            .get(self.bbsmenu.selected())
-            .unwrap()
+    pub fn get_menu_id(&mut self) -> i32 {
+        self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_categories(&self) -> i32 {
+        self.categories.items[self.categories.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_category_name(&self) -> String {
+        self.categories.items[self.categories.state.selected().unwrap_or(0)]
+            .name
             .clone()
     }
-    pub async fn get_categories(&self) -> Vec<CategoryItem> {
-        self.categories.items.clone()
+    pub fn get_category_id(&self) -> i32 {
+        self.categories.items[self.categories.state.selected().unwrap_or(0)].id
     }
-    // pub async fn get_category(&self) -> Vec<CategoryContent> {
-    //     let category = self.get_categories().await;
-    //     if category.len() <= self.category.state.selected().unwrap() {
-    //         return vec![CategoryContent {
-    //             board_name: "".to_string(),
-    //             url:        "".to_string(),
-    //         }];
-    //     }
-    //     category[self.category.state.selected().unwrap()]
-    //         .category_content
-    //         .clone()
-    // }
-    // pub async fn get_board(&self) -> Vec<ThreadSubject> {
-    //     self.board.items.clone()
-    // }
-    // pub async fn get_thread(&self) -> Vec<ThreadPost> {
-    //     self.thread.items.clone()
-    // }
+    pub fn get_board_id(&self) -> i32 {
+        self.category.items[self.category.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_thread_id(&self) -> i32 {
+        self.board.items[self.board.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_thread_post_id(&self) -> i32 {
+        self.thread.items[self.thread.state.selected().unwrap_or(0)].id
+    }
+    pub fn get_board_id_by_bookmark(&self) -> i32 {
+        self.bookmark.items[self.bookmark.state.selected().unwrap_or(0)].id
+    }
+
+    pub fn get_sort_order(&self) -> Sort {
+        self.sort.items[self.sort.state.selected().unwrap_or(0)].clone()
+    }
 }
 
 impl App {
@@ -112,11 +142,13 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
-                            LeftTabItem::Bbsmenu => self.update_bbsmenu().await,
+                            LeftTabItem::Home => {}
+                            LeftTabItem::Bookmarks => self.update_bookmark().await?,
+                            LeftTabItem::Bbsmenu => self.update_bbsmenu().await?,
                             LeftTabItem::Categories => self.update_categories().await?,
                             LeftTabItem::Category(..) => self.update_category().await?,
                             LeftTabItem::Board(..) => self.update_board().await?,
-                            LeftTabItem::Settings => {}
+                            LeftTabItem::Settings => (),
                         }
                     }
                     Pane::Main => {
@@ -124,6 +156,7 @@ impl App {
                             RightTabItem::Thread(..) => self.update_thread().await?,
                         }
                     }
+                    _ => (),
                 }
                 Ok(())
             }
@@ -131,6 +164,8 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
+                            LeftTabItem::Home => self.home.next(),
+                            LeftTabItem::Bookmarks => self.bookmark.next(),
                             LeftTabItem::Bbsmenu => self.bbsmenu.next(),
                             LeftTabItem::Categories => self.categories.next(),
                             LeftTabItem::Category(..) => self.category.next(),
@@ -143,6 +178,7 @@ impl App {
                             RightTabItem::Thread(..) => self.thread.next(),
                         }
                     }
+                    _ => {}
                 }
                 Ok(())
             }
@@ -150,6 +186,8 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
+                            LeftTabItem::Home => self.home.prev(),
+                            LeftTabItem::Bookmarks => self.bookmark.prev(),
                             LeftTabItem::Bbsmenu => self.bbsmenu.prev(),
                             LeftTabItem::Categories => self.categories.prev(),
                             LeftTabItem::Category(..) => self.category.prev(),
@@ -162,6 +200,7 @@ impl App {
                             RightTabItem::Thread(..) => self.thread.prev(),
                         }
                     }
+                    _ => {}
                 }
                 Ok(())
             }
@@ -169,6 +208,8 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
+                            LeftTabItem::Home => self.home.state.select(Some(0)),
+                            LeftTabItem::Bookmarks => self.bookmark.state.select(Some(0)),
                             LeftTabItem::Bbsmenu => self.bbsmenu.state.select(Some(0)),
                             LeftTabItem::Categories => self.categories.state.select(Some(0)),
                             LeftTabItem::Category(..) => self.category.state.select(Some(0)),
@@ -181,6 +222,7 @@ impl App {
                             RightTabItem::Thread(..) => self.thread.state.select(Some(0)),
                         }
                     }
+                    _ => {}
                 }
                 Ok(())
             }
@@ -188,6 +230,14 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
+                            LeftTabItem::Home => {
+                                self.home.state.select(Some(self.home.items.len() - 1))
+                            }
+                            LeftTabItem::Bookmarks => {
+                                self.bookmark
+                                    .state
+                                    .select(Some(self.bookmark.items.len() - 1))
+                            }
                             LeftTabItem::Bbsmenu => {
                                 self.bbsmenu
                                     .state
@@ -217,6 +267,7 @@ impl App {
                             }
                         }
                     }
+                    _ => {}
                 }
                 Ok(())
             }
@@ -224,58 +275,35 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
-                            LeftTabItem::Bbsmenu => {}
+                            LeftTabItem::Home => {}
                             _ => self.left_tabs.hidtory_remove(),
                         }
                         Ok(())
                     }
                     Pane::Main => {
                         match self.right_tabs.get() {
-                            RightTabItem::Thread(_, url) => {
-                                // tabsの中で現在選択中のタブのindexを取得する
-                                if self.right_tabs.titles.len() >= 1 {
-                                    return Ok(());
-                                }
-                                let idx = self
-                                    .right_tabs
-                                    .titles
-                                    .iter()
-                                    .position(|x| {
-                                        // nameは被る可能性があるので、一意の値であるurlを使用して位置を取得
-                                        match x {
-                                            RightTabItem::Thread(.., url2) => &url == url2,
-                                        }
-                                    })
-                                    .unwrap();
-                                self.right_tabs.titles.remove(idx);
-                                if self.right_tabs.index >= 1 {
-                                    self.right_tabs.index -= 1;
-                                }
+                            RightTabItem::Thread(..) => {
+                                self.layout.toggle_focus_pane();
                             }
                         }
                         Ok(())
                     }
+                    _ => Ok(()),
                 }
             }
             Event::Right => {
                 if self.layout.focus_pane == Pane::Main {
-                    self.thread.items = self.right_pane_items[self.right_tabs.index + 1]
-                        .2
-                        .clone()
-                        .posts;
+                    let menu_id = self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id;
+                    let category_id =
+                        self.categories.items[self.categories.state.selected().unwrap_or(0)].id;
                     self.right_tabs.next();
                 }
                 Ok(())
             }
             Event::Left => {
                 if self.layout.focus_pane == Pane::Main {
-                    self.thread.items = self.right_pane_items[self.right_tabs.index + 1]
-                        .2
-                        .clone()
-                        .posts;
+                    self.update_thread().await?;
                     self.right_tabs.previous();
-
-                    // println!("{:?}", self.right_pane_items);
                 }
                 Ok(())
             }
@@ -284,6 +312,35 @@ impl App {
                 match self.layout.focus_pane {
                     Pane::Side => {
                         match self.left_tabs.get() {
+                            LeftTabItem::Home => {
+                                let home_item = self.home.items[self.home.selected()].clone().item;
+                                match home_item {
+                                    HomeItem::Bookmark => {
+                                        self.update_bookmark().await?;
+                                        self.layout.focus_pane = Pane::Side;
+                                        self.left_tabs.history_add(LeftTabItem::Bookmarks);
+                                        self.left_tabs.next();
+                                    }
+                                    HomeItem::Settings => {
+                                        self.layout.focus_pane = Pane::Side;
+                                        self.left_tabs.history_add(LeftTabItem::Settings);
+                                        self.left_tabs.next();
+                                    }
+                                    HomeItem::AllChannels => {
+                                        self.layout.focus_pane = Pane::Side;
+                                        self.left_tabs.history_add(LeftTabItem::Bbsmenu);
+                                        self.left_tabs.next();
+                                    }
+                                }
+                            }
+                            LeftTabItem::Bookmarks => {
+                                self.layout.focus_pane = Pane::Side;
+                                self.update_board_from_bookmark().await?;
+                                self.left_tabs.history_add(LeftTabItem::Board(
+                                    self.bookmark.items[self.bookmark.selected()].name.clone(),
+                                ));
+                                self.left_tabs.next();
+                            }
                             LeftTabItem::Bbsmenu => {
                                 self.layout.focus_pane = Pane::Side;
                                 let _ = self.update_categories().await?;
@@ -291,21 +348,12 @@ impl App {
                                 self.left_tabs.next();
                             }
                             LeftTabItem::Categories => {
-                                {
-                                    let _ = self.update_category().await;
-                                    self.layout.focus_pane = Pane::Side;
-                                }
+                                self.layout.focus_pane = Pane::Side;
+                                let _ = self.update_category().await;
 
-                                let categ = self.get_categories().await;
-                                let selected = self.categories.state.selected().unwrap();
-                                if selected < categ.len() {
-                                    {
-                                        self.left_tabs.history_add(LeftTabItem::Category(
-                                            categ[selected].clone().category_name,
-                                        ));
-                                    }
-                                    self.left_tabs.next();
-                                }
+                                self.left_tabs
+                                    .history_add(LeftTabItem::Category(self.get_category_name()));
+                                self.left_tabs.next();
                             }
                             LeftTabItem::Category(..) => {
                                 {
@@ -316,22 +364,20 @@ impl App {
                                 let categ = self.category.items
                                     [self.category.state.selected().unwrap()]
                                 .clone();
-
                                 self.left_tabs
-                                    .history_add(LeftTabItem::Board(categ.board_name.clone()));
+                                    .history_add(LeftTabItem::Board(categ.name.clone()));
                                 self.left_tabs.next();
                             }
                             LeftTabItem::Board(..) => {
-                                {
-                                    let _ = self.update_thread().await;
-                                }
-                                let idx = self.right_tabs.index;
-                                let board = self.right_pane_items[idx].clone();
+                                let _ = self.update_thread().await;
+
+                                let board =
+                                    self.board.items[self.board.state.selected().unwrap()].clone();
 
                                 self.right_tabs
-                                    .history_add(RightTabItem::Thread(board.0, board.1));
+                                    .history_add(RightTabItem::Thread(board.name, board.url));
 
-                                self.layout.toggle_focus_pane();
+                                self.layout.focus_pane = Pane::Main;
                                 self.right_tabs.next();
                             }
                             LeftTabItem::Settings => {
@@ -352,61 +398,128 @@ impl App {
                         }
                         Ok(())
                     }
+                    _ => Ok(()),
                 }
             }
             Event::Message(message) => {
                 self.message = message.clone();
                 Ok(())
             }
+            Event::ToggleBookmark => {
+                match self.left_tabs.get() {
+                    LeftTabItem::Category(..) => {
+                        let board = self.category.items[self.category.selected()].clone();
+                        let res = BookmarkStateItem::add(board.url).await;
+                        match res {
+                            Ok(()) => {
+                                self.update_message(format!(
+                                    "ブックマークに追加しました。: {}",
+                                    board.name
+                                ));
+                            }
+                            Err(e) => {
+                                self.update_message(format!(
+                                    "ブックマークへの追加に失敗しました。: {}",
+                                    board.name
+                                ));
+                            }
+                        }
+                    }
+                    LeftTabItem::Bookmarks => {
+                        let bookmark = self.bookmark.items[self.bookmark.selected()].clone();
+                        let res = BookmarkStateItem::delete(bookmark.id).await;
+                        match res {
+                            Ok(()) => {
+                                self.update_message(format!(
+                                    "ブックマークから削除しました。: {}",
+                                    bookmark.name
+                                ));
+                            }
+                            Err(e) => {
+                                self.update_message(format!(
+                                    "ブックマークの削除に失敗しました。: {}",
+                                    bookmark.name
+                                ));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                Ok(())
+            }
+            Event::ToggleFilter => {
+                self.sort.next();
+                Ok(())
+            }
             _ => Ok(()),
         }
     }
 
-    pub async fn update_bbsmenu(&mut self) {
-        // let url = self.get_menu_item().await;
+    pub fn update_message(&mut self, message: String) {
+        self.message = message;
     }
+
+    pub async fn update_bookmark(&mut self) -> Result<()> {
+        let bookmarks = BookmarkStateItem::get_all().await?;
+        self.bookmark.set_items(bookmarks);
+        Ok(())
+    }
+
+    pub async fn update_board_from_bookmark(&mut self) -> Result<()> {
+        self.bookmark.items[self.bookmark.selected()]
+            .clone()
+            .fetch()
+            .await?;
+
+        let board_id = self.get_board_id_by_bookmark();
+        self.board
+            .set_items(ThreadStateItem::get_by_board_id(board_id).await?);
+        Ok(())
+    }
+
+    pub async fn update_bbsmenu(&mut self) -> Result<()> {
+        self.bbsmenu.set_items(BbsMenuStateItem::get().await?);
+        Ok(())
+    }
+
     pub async fn update_categories(&mut self) -> Result<()> {
-        let url = self.get_menu_item().await;
-        let bbsmenu = Bbsmenu::new(url.clone())?.get().await?;
-        self.categories.items = bbsmenu.menu_list;
+        self.bbsmenu.items[self.bbsmenu.selected()].update().await?;
+
+        let menu_id = self.get_menu_id();
+        let categories = CategoriesStateItem::get_by_menu_id(menu_id).await?;
+        self.categories.set_items(categories);
         Ok(())
     }
+
     pub async fn update_category(&mut self) -> Result<()> {
-        let categ = self
-            .categories
-            .items
-            .get(self.categories.state.selected().unwrap())
-            .unwrap();
-        self.category.items = categ.category_content.clone();
+        //現在洗濯中のカテゴりID
+        let category_id = self.get_category_id();
+        // カテゴリ内の板一覧
+        let category = BoardStateItem::get_by_category_id(category_id).await?;
+        self.category.set_items(category);
         Ok(())
     }
+
     pub async fn update_board(&mut self) -> Result<()> {
-        let board_item = self
-            .category
-            .items
-            .get(self.category.state.selected().unwrap())
-            .unwrap();
-        let board = Board::new(board_item.url.clone())?.get().await?;
-        self.board.items = board;
+        self.category.items[self.category.selected()]
+            .clone()
+            .fetch()
+            .await?;
+        let board_id = self.get_board_id();
+        self.board
+            .set_items(ThreadStateItem::get_by_board_id(board_id).await?);
         Ok(())
     }
+
     pub async fn update_thread(&mut self) -> Result<()> {
-        let thread_item = self
-            .board
-            .items
-            .get(self.board.state.selected().unwrap())
-            .unwrap();
+        self.board.items[self.board.selected()]
+            .clone()
+            .fetch()
+            .await?;
 
-        let thread = Thread::new(thread_item.url.clone())?.get().await;
-
-        let thread = match thread {
-            Ok(thread) => thread,
-            Err(e) => {
-                self.message = format!("{}", e);
-                ThreadResponse::default()
-            }
-        };
-        self.thread.items = thread.posts;
+        let thread_id = self.get_thread_id();
+        self.thread
+            .set_items(ThreadPostStateItem::get_by_thread_id(thread_id).await?);
         Ok(())
     }
 }

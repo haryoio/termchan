@@ -67,12 +67,17 @@ fn parse_bbsmenu_html(html_str: &str) -> BbsmenuSchema {
     let mut menu_list: Vec<CategoryItem> = Vec::new();
     let mut category_name = String::new();
     let mut lines = html_str.split('\n');
+    let mut category_content: Vec<CategoryContent> = Vec::new();
 
     loop {
-        let mut category_content: Vec<CategoryContent> = Vec::new();
         let line = match lines.next() {
             Some(line) => line,
-            None => lines.next().unwrap(),
+            None => {
+                match lines.next() {
+                    Some(line) => line,
+                    None => break,
+                }
+            }
         };
         if line.contains("</small>") {
             break;
@@ -80,6 +85,7 @@ fn parse_bbsmenu_html(html_str: &str) -> BbsmenuSchema {
         if line.starts_with("<BR><BR><B>") {
             category_name = line[11..line.len() - 8].to_string();
         }
+
         if line.starts_with("<A HREF=") {
             if line.ends_with("<br>") || line.ends_with("<BR>") {
                 let b = &line[8..line.len() - 8];
@@ -92,7 +98,6 @@ fn parse_bbsmenu_html(html_str: &str) -> BbsmenuSchema {
                     board_name: content[1].to_string(),
                     url:        content[0].to_string(),
                 });
-                continue;
             } else {
                 let b = &line[8..line.len() - 4];
                 let content = if b.contains("TARGET=_blank") {
@@ -109,9 +114,20 @@ fn parse_bbsmenu_html(html_str: &str) -> BbsmenuSchema {
                     category_content: category_content.clone(),
                 });
                 category_content.clear();
-                continue;
             }
         }
     }
     BbsmenuSchema { menu_list }
+}
+
+#[cfg(test)]
+mod bbsmenu_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn bbsmenu_test() {
+        let bbsmenu = Bbsmenu::new("https://menu.open2ch.net/bbsmenu.html".to_string()).unwrap();
+        let bbsmenu_schema = bbsmenu.get().await.unwrap();
+        println!("{:?}", bbsmenu_schema);
+    }
 }

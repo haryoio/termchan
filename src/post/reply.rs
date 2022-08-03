@@ -1,5 +1,7 @@
+use std::str::FromStr;
+
 use anyhow;
-use reqwest;
+use reqwest::{self, Url};
 
 use crate::{
     header::{build::post_header, cookie::Cookies},
@@ -22,7 +24,7 @@ pub async fn post_reply(
     cookies.add("yuki", "akari");
     cookies.add("READJS", "\"off\"");
 
-    let header = post_header(thread_params.clone(), cookies);
+    let header = post_header(Url::from_str(url).unwrap(), cookies);
 
     // 一度目書き込み
     let res = client
