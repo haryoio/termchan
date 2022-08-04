@@ -23,6 +23,7 @@ jobs:
               run: cargo build --profile release --bin termchan
             - name: Gzip
               run: |
+                  mkdir termchan
                   cp ./target/release/termchan ./termchan
                   tar -zcvf termchan-linux.tar.gz termchan
             - uses: actions/upload-artifact@v3
