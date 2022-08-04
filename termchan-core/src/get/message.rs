@@ -1,4 +1,4 @@
-use std::{fmt::Display, io::Write};
+use std::fmt::Display;
 
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -212,7 +212,7 @@ where
                     texts.push(Text::Plain(",".to_string()));
                     self.next();
                 }
-                Some(Div(class, body)) => {
+                Some(Div(_class, body)) => {
                     let body = body.iter().map(|b| b.as_ref()).collect::<Vec<&Token>>();
                     let mut inner = MessageParser::new(body.into_iter()).parse();
                     texts.append(&mut inner.text);

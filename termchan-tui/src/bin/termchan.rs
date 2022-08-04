@@ -1,4 +1,4 @@
-use std::{error::Error, process};
+use std::error::Error;
 
 use termchan_tui::run::run;
 

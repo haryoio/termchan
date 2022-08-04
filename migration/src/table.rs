@@ -58,7 +58,6 @@ pub enum Thread {
 pub enum ThreadPost {
     Table,
     Id,
-
     /// ランダムなユーザーID
     /// データベースのリレーションとは関係ない
     PostId,
@@ -83,5 +82,4 @@ pub enum Image {
     Id,
     Url,
     SavePath,
-    Blob,
 }

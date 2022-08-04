@@ -20,7 +20,7 @@ pub fn decode_japan_date(date: &str) -> Result<i64> {
     let res = NaiveDateTime::parse_from_str(date.as_str(), format);
     match res {
         Ok(d) => Ok(d.timestamp()),
-        Err(e) => Ok(0),
+        Err(_) => Ok(0),
     }
 }
 

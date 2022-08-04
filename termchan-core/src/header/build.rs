@@ -6,9 +6,8 @@ use reqwest::{
 };
 
 use super::cookie::Cookies;
-use crate::url::url::URL;
 
-static HeaderString1: &str = r#"
+static HEADER_STRING: &str = r#"
 sec-ch-ua: ".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"
 sec-ch-ua-mobile: ?1
 sec-ch-ua-platform: "Android"
@@ -18,18 +17,6 @@ sec-fetch-site: same-origin
 sec-fetch-user: ?1
 upgrade-insecure-requests: 1
 user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10; rv:33.0) Gecko/20100101 Firefox/33.0
-"#;
-static HeaderString2: &str = r#"
-user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36
-Accept-Language: ja,en-US;q=0.7,en;q=0.3
-Accept-Encoding: gzip, deflate, br
-sec-fetch-dest: document
-sec-fetch-mode: navigate
-sec-fetch-site: same-origin
-sec-fetch-user: ?1
-sec-ch-ua: .Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"
-sec-ch-ua-mobile: ?0
-sec-ch-ua-platform: "macOS"
 "#;
 
 pub fn base_header<'a>(url: Url, cookie: Cookies) -> HashMap<String, String> {
@@ -42,7 +29,7 @@ pub fn base_header<'a>(url: Url, cookie: Cookies) -> HashMap<String, String> {
         url.origin().unicode_serialization().to_string(),
     );
 
-    let mut split = HeaderString1.split("\n");
+    let mut split = HEADER_STRING.split("\n");
     loop {
         let line = split.next();
         if line.is_none() {
