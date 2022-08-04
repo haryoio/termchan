@@ -32,7 +32,7 @@ jobs:
                   retention-days: 1
 
     publish:
-        needs: [linux, windows]
+        needs: [linux]
         runs-on: ubuntu-20.04
         env:
             GH_REPO: ${{ github.repository }}
