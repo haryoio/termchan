@@ -26,7 +26,6 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-
         // Category Schema
         manager
             .create_table(

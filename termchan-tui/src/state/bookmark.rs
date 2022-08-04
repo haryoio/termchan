@@ -15,6 +15,7 @@ use sea_orm::{
     RelationTrait,
     Set,
 };
+use termchan_core::get::board::Board;
 
 use crate::database::connect::establish_connection;
 
@@ -103,9 +104,7 @@ impl BookmarkStateItem {
     }
     pub async fn fetch(&self) -> Result<()> {
         let db = establish_connection().await?;
-        let res = termchan::get::board::Board::new(self.url.to_string())?
-            .get()
-            .await?;
+        let res = Board::new(self.url.to_string())?.get().await?;
         let mut new_threads = vec![];
         for item in res {
             new_threads.push(thread::ActiveModel {

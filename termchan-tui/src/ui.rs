@@ -6,7 +6,7 @@ use std::{fmt::Display, vec};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
 use rayon::prelude::*;
-use termchan::get::message::Text;
+use termchan_core::get::message::Text;
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},

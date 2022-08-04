@@ -5,6 +5,7 @@ use migration::{
     OnConflict,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use termchan_core::get::thread::Thread;
 
 use crate::database::connect::establish_connection;
 
@@ -63,9 +64,7 @@ impl ThreadStateItem {
 
     pub async fn fetch(&self) -> Result<()> {
         let db = establish_connection().await?;
-        let res = termchan::get::thread::Thread::new(self.url.to_string())?
-            .get()
-            .await?;
+        let res = Thread::new(self.url.to_string())?.get().await?;
         let mut new_posts = vec![];
         for item in res.posts {
             new_posts.push(thread_post::ActiveModel {

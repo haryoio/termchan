@@ -10,8 +10,9 @@ use migration::{
     OnConflict,
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, QueryFilter, Set};
+use termchan_core::get::bbsmenu::Bbsmenu;
 
-use crate::database::connect::{establish_connection, Repository};
+use crate::database::connect::establish_connection;
 
 #[derive(Debug, Clone)]
 pub struct BbsMenuStateItem {
@@ -82,9 +83,7 @@ impl BbsMenuStateItem {
 
     pub async fn update(&self) -> Result<()> {
         let db = establish_connection().await?;
-        let res = termchan::get::bbsmenu::Bbsmenu::new(self.url.to_string())?
-            .get()
-            .await?;
+        let res = Bbsmenu::new(self.url.to_string())?.get().await?;
 
         let menu_is_exists = Menu::find()
             .filter(menu::Column::Url.contains(&self.url))

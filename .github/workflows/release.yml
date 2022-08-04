@@ -1,0 +1,88 @@
+name: Release
+
+on:
+    push:
+        tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+    windows:
+        runs-on: windows-latest
+
+        defaults:
+            run:
+                shell: bash
+
+        steps:
+            - uses: actions/checkout@v2
+
+            - name: Update rust
+              run: cargo update
+            - name: Install WiX
+              run: nuget install WiX
+            - name: Create msi installer
+              run: |
+                  ./WiX.*/tools/candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
+                      -out "./termchan.wixobj" "extra/windows/wix/termchan.wxs"
+                  ./WiX.*/tools/light.exe -ext WixUIExtension -ext WixUtilExtension \
+                      -out "./termchan-windows.msi" -sice:ICE61 -sice:ICE91 \
+                      "./termchan.wixobj"
+            - name: Create portable
+              shell: pwsh
+              run: |
+                  Compress-Archive ./target/release/termchan.exe ./termchan-windows-portable.zip
+
+            - uses: actions/upload-artifact@v3
+              with:
+                  name: lapce-windows
+                  path: |
+                      ./termchan-windows-portable.zip
+                      ./termchan-windows.msi
+                  retention-days: 1
+
+    linux:
+        runs-on: ubuntu-20.04
+
+        steps:
+            - uses: actions/checkout@v2
+            - name: Install dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install cmake
+            - name: Update rust
+              run: rustup update
+            - name: Build
+              run: cargo build --profile release --bin termchan
+            - name: Gzip
+              run: |
+                  cp ./target/release/termchan ./termchan
+                  tar -zcvf termchan-linux.tar.gz termchan
+            - uses: actions/upload-artifact@v2
+              with:
+                  name: termchan-linux
+                  path: ./termchan-linux.tar.gz
+                  retention-days: 1
+
+    publish:
+        needs: [linux, windows]
+        runs-on: ubuntu-20.04
+        env:
+            GH_REPO: ${{ github.repository }}
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v2
+
+            - if: github.event_name == 'push'
+              run: |
+                  TAG_NAME=${{ github.ref }}
+                  echo "TAG_NAME=${TAG_NAME#refs/tags/}">> $GITHUB_ENV
+
+            - name: Publish release
+              env:
+                  DEBUG: api
+              run: |
+                  gh release create $TAG_NAME --title "$TAG_NAME" --target $GITHUB_SHA termchan-linux/*

@@ -10,19 +10,19 @@ use migration::{
 };
 use sea_orm::{Database, DbConn};
 
-#[async_trait::async_trait]
-pub trait Repository {
-    type From;
-    type To;
-    async fn get(from: Self::From) -> Result<Self::To>;
-    async fn update(&mut self, to: Self::To) -> Result<()>;
-}
+#[cfg(target_os = "linux")]
+const DATABASE_URL: &str = "sqlite:///var/tmp/termchan.db?mode=rwc";
+
+#[cfg(target_os = "macos")]
+const DATABASE_URL: &str = "sqlite:///var/tmp/termchan.db?mode=rwc";
+
+#[cfg(target_os = "windows")]
+const DATABASE_URL: &str = "sqlite:///C:\\Windows\\Temp\\termchan.db?mode=rwc";
 
 pub async fn establish_connection() -> Result<DbConn, DbErr> {
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let db = Database::connect(&database_url)
+    let db = Database::connect(DATABASE_URL)
         .await
         .expect("Failed to setup the database");
 

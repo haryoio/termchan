@@ -1,5 +1,5 @@
 [package]
-name = "client"
+name = "termchan-tui"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,9 +13,9 @@ once_cell = "1.13.0"
 tui = { version = "0.18.0", features = ["serde", "termion"] }
 serde = { version = "1.0.138", features = ["derive"] }
 serde_json = "1.0.82"
-termchan = { path = ".." }
+termchan-core = { path = "../termchan-core" }
 anyhow = "1.0.56"
-tokio = "1.17.0"
+tokio = { version = "1.20.1", features = ["full"] }
 clap = { version = "3.2.8" }
 futures = "0.3.21"
 termion-input-tokio = "0.3.0"

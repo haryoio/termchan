@@ -1,7 +1,7 @@
 use chrono::TimeZone;
 use chrono_tz::Asia::Tokyo;
 use eyre::Result;
-use termchan::get::{
+use termchan_core::get::{
     bbsmenu::{Bbsmenu, CategoryContent, CategoryItem},
     board::{Board, ThreadSubject},
     thread::{Thread, ThreadPost, ThreadResponse},

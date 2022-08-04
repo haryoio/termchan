@@ -6,7 +6,7 @@ use migration::{
 };
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde_json::json;
-use termchan::get::message::Message;
+use termchan_core::get::message::Message;
 
 use crate::database::connect::establish_connection;
 

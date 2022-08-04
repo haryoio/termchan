@@ -1,46 +1,21 @@
-mod application;
-mod config;
-mod database;
-mod event;
-mod renderer;
-mod state;
-mod style;
-mod words;
 use std::{
     error::Error,
     io::{self, Write},
     process,
 };
 
-use application::App;
-use event::{event_sender, Command};
 use termion::raw::{IntoRawMode, RawTerminal};
 
-mod ui;
-
-fn append_file(content: &str) {
-    let mut file = std::fs::OpenOptions::new()
-        .append(true)
-        .open("./debug.log")
-        .unwrap();
-    file.write_all(content.as_bytes()).unwrap();
-}
-use crate::{event::Event, state::layout::Pane};
-
-#[tokio::main]
-async fn main() {
-    match run().await {
-        Ok(_) => (),
-        Err(e) => {
-            append_file(&format!("{:?}", e));
-            process::exit(1);
-        }
-    }
-}
+use crate::{
+    application::App,
+    event::{event_sender, Command, Event},
+    renderer::Renderer,
+    state::layout::Pane,
+};
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
     // setup terminal
-    let mut render = renderer::Renderer::new(RawTerminal::from(io::stdout().into_raw_mode()?))?;
+    let mut render = Renderer::new(RawTerminal::from(io::stdout().into_raw_mode()?))?;
     let mut app = App::new();
     app.update(Event::Down).await?;
 
