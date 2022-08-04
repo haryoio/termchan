@@ -8,40 +8,6 @@ env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
-    windows:
-        runs-on: windows-latest
-
-        defaults:
-            run:
-                shell: bash
-
-        steps:
-            - uses: actions/checkout@v2
-
-            - name: Update rust
-              run: cargo update
-            - name: Install WiX
-              run: nuget install WiX
-            - name: Create msi installer
-              run: |
-                  ./WiX.*/tools/candle.exe -arch "x64" -ext WixUIExtension -ext WixUtilExtension \
-                      -out "./termchan.wixobj" "extra/windows/wix/termchan.wxs"
-                  ./WiX.*/tools/light.exe -ext WixUIExtension -ext WixUtilExtension \
-                      -out "./termchan-windows.msi" -sice:ICE61 -sice:ICE91 \
-                      "./termchan.wixobj"
-            - name: Create portable
-              shell: pwsh
-              run: |
-                  Compress-Archive ./target/release/termchan.exe ./termchan-windows-portable.zip
-
-            - uses: actions/upload-artifact@v3
-              with:
-                  name: lapce-windows
-                  path: |
-                      ./termchan-windows-portable.zip
-                      ./termchan-windows.msi
-                  retention-days: 1
-
     linux:
         runs-on: ubuntu-20.04
 

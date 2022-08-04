@@ -59,7 +59,7 @@ impl Thread {
         let dom = host_split[1..=2].join(".");
 
         let url = match dom.as_str() {
-            "5ch.net" => get_five_json_url(&sub, &board, &dat),
+            "\x35\x63\x68.net" => get_five_json_url(&sub, &board, &dat),
             "open2ch.net" | "2ch.sc" => get_dat_url(&dom, &sub, &board, &dat),
             _ => Err(eyre!("unsupported board {}", host))?,
         };
@@ -77,7 +77,7 @@ impl Thread {
             .context(eyre!("Failed to get thread. got: {}", self.url.clone()))?;
 
         match self.dom.as_str() {
-            "5ch.net" => parse_fivenet_json(res.json::<ThreadJson>().await?, &self.url),
+            "\x35\x63\x68.net" => parse_fivenet_json(res.json::<ThreadJson>().await?, &self.url),
             "open2ch.net" | "2ch.sc" => parse_dat(&res.text().await?, &self.url),
             _ => Err(eyre!("unsupported board {}", self.dom))?,
         }
@@ -87,7 +87,7 @@ impl Thread {
 /// fivechでJSONを取得するためのURL
 fn get_five_json_url(subdomain: &str, board: &str, dat: &str) -> String {
     format!(
-        "https://itest.5ch.net/public/newapi/client.php?subdomain={}&board={}&dat={}&rand={}",
+        "https://itest.\x35\x63\x68.net/public/newapi/client.php?subdomain={}&board={}&dat={}&rand={}",
         subdomain,
         board,
         dat,
@@ -360,28 +360,8 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_thread() {
-        let url = "https://mi.5ch.net/test/read.cgi/news4vip/1658208434/";
-        let thread = Thread::new(url.to_string()).unwrap();
-        println!("{:?}", thread);
-        // let thread_response = thread.get().await.unwrap();
-        // println!("{:?}", thread_response);
-        // for post in thread_response.posts {
-        //     println!("{}", post.name);
-        // }
-    }
-
-    #[tokio::test]
-    async fn get_thread_init() {
-        let url = "https://mi.5ch.net/test/read.cgi/news4vip/9245000000";
-        let thread = Thread::new(url.to_string()).unwrap();
-        let thread_response = thread.get().await.unwrap();
-        println!("{:?}", thread_response);
-    }
-
-    #[tokio::test]
     async fn get_json() {
-        let url = "https://itest.5ch.net/public/newapi/client.php?subdomain=mi&board=news4vip&dat=1658793162&rand=";
+        let url = "https://itest.\x35\x63\x68.net/public/newapi/client.php?subdomain=kizuna&board=pasta&dat=1569615752&rand=";
         let url = format!("{}{}", url, get_rand());
         let client = reqwest::Client::new();
         let res = client.get(&*url.clone()).send().await.unwrap();
@@ -391,7 +371,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_fivechan() {
-        let url = "https://mi.5ch.net/test/read.cgi/news4vip/1659017494";
+        let url = "https://mevius.\x35\x63\x68.net/test/read.cgi/kao/1632530358";
         let thread = Thread::new(url.to_string()).unwrap();
         println!("{:?}", thread);
         let thread_response = thread.get().await.unwrap();
@@ -403,7 +383,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_open2ch() {
-        let url = "https://hayabusa.open2ch.net/test/read.cgi/news4vip/1654995877";
+        let url = "https://ikura.open2ch.net/test/read.cgi/konamono/1652069715";
         let thread = Thread::new(url.to_string()).unwrap();
         println!("{:?}", thread);
         let thread_response = thread.get().await.unwrap();
@@ -414,7 +394,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_2chsc() {
-        let url = "http://viper.2ch.sc/test/read.cgi/news4vip/1658812729";
+        let url = "http://toro.2ch.sc/test/read.cgi/unix/1021212011";
         let thread = Thread::new(url.to_string()).unwrap();
         println!("{:?}", thread);
         let thread_response = thread.get().await.unwrap();

@@ -8,7 +8,6 @@ pub struct ThreadParams {
     pub thread_id: String,
     pub board_key: String,
 }
-/// https://mi.5ch.net/test/read.cgi/news4vip/1656992645/l50"
 impl From<&str> for ThreadParams {
     fn from(url: &str) -> Self {
         let origin_url = url.clone();
@@ -62,24 +61,5 @@ impl ThreadParams {
     }
     pub fn build_board(&self) -> String {
         format!("{}://{}/{}/", self.scheme, self.host, self.board_key)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_parse_thread_url() {
-        let url = "https://mi.5ch.net/test/read.cgi/news4vip/1656992645/l50";
-        let board_params = ThreadParams::from(url);
-        println!("{:?}", board_params);
-        assert_eq!(board_params.board_key, "news4vip");
-        assert_eq!(board_params.thread_id, "1656992645");
-        assert_eq!(board_params.host(), "mi.5ch.net");
-        assert_eq!(board_params.build_post(), "https://mi.5ch.net/test/bbs.cgi");
-        assert_eq!(
-            board_params.build_get(),
-            "https://mi.5ch.net/test/read.cgi/news4vip/1656992645/"
-        );
     }
 }

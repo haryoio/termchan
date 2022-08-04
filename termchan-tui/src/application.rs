@@ -52,7 +52,7 @@ impl App {
 
         // BBS Menuを DBに登録。
         futures::executor::block_on(BbsMenuStateItem::init(vec![
-            "https://menu.5ch.net/bbsmenu.json".to_string(),
+            "https://menu.\x35\x63\x68.net/bbsmenu.json".to_string(),
             "https://menu.open2ch.net/bbsmenu.html".to_string(),
         ]));
 

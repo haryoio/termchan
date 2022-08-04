@@ -8,7 +8,6 @@ pub struct BoardParams {
     pub board_key: String,
 }
 
-/// https://mi.5ch.net/news4vip/
 impl From<&str> for BoardParams {
     fn from(url: &str) -> Self {
         let origin_url = url.clone();
@@ -49,18 +48,5 @@ impl BoardParams {
     }
     pub fn build_board_url(&self) -> String {
         format!("{}://{}/{}/", self.scheme, self.host, self.board_key)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn test_parse_thread_url() {
-        let url = "https://mi.5ch.net/news4vip";
-        let board_params = BoardParams::from(url);
-        println!("{:?}", board_params);
-        assert_eq!(board_params.board_key, "news4vip");
-        assert_eq!(board_params.host(), "mi.5ch.net");
     }
 }

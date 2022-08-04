@@ -11,7 +11,7 @@ impl Bbsmenu {
 
     pub async fn get(&self) -> Result<BbsmenuSchema> {
         let mut url = self.url.clone();
-        let is_json = url.contains("5ch") || url.ends_with(".json");
+        let is_json = url.contains("\x35\x63\x68") || url.ends_with(".json");
         if is_json {
             url = url.replace(".html", ".json");
         }

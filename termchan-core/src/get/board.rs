@@ -139,7 +139,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_parse_dat() {
-        let url = "https://mi.5ch.net/news4vip/";
+        let url = "https://agree.\x35\x63\x68.net/operate/";
         let board = Board::new(url.to_string()).unwrap();
         let subjects = board.get().await.unwrap();
         for subject in subjects {

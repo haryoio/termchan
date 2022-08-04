@@ -96,17 +96,3 @@ pub fn map_to_headermap(map: HashMap<String, String>) -> HeaderMap {
     }
     header
 }
-
-#[cfg(test)]
-mod header_tests {
-    use super::*;
-    use crate::url::reply::ThreadParams;
-
-    #[test]
-    fn test_base_header() {
-        let url = "https://mi.5ch.net/test/read.cgi/news4vip/1658208434/";
-        let cookie = Cookies::new();
-        let header = base_header(Url::from_str(url).unwrap(), cookie);
-        println!("{:?}", header);
-    }
-}
