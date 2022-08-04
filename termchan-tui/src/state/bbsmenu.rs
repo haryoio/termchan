@@ -4,12 +4,9 @@ use entity::{
     menu,
     prelude::{Board, Category, Menu},
 };
-use eyre::{bail, Error, Result};
-use migration::{
-    async_trait::{self, async_trait},
-    OnConflict,
-};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, InsertResult, QueryFilter, Set};
+use eyre::Result;
+use migration::OnConflict;
+use sea_orm::{ColumnTrait, EntityTrait, InsertResult, QueryFilter, Set};
 use termchan_core::get::bbsmenu::Bbsmenu;
 
 use crate::database::connect::establish_connection;
@@ -70,25 +67,9 @@ impl BbsMenuStateItem {
         Ok(bbs_menu_state_item)
     }
 
-    pub async fn insert(&self, url: &str) -> Result<()> {
-        let conn = establish_connection().await?;
-        let new_menu = menu::ActiveModel {
-            name: Set(url.to_string().to_string()),
-            url: Set(url.to_string().to_string()),
-            ..Default::default()
-        };
-        let _ = new_menu.save(&conn).await;
-        Ok(())
-    }
-
     pub async fn update(&self) -> Result<()> {
         let db = establish_connection().await?;
         let res = Bbsmenu::new(self.url.to_string())?.get().await?;
-
-        let menu_is_exists = Menu::find()
-            .filter(menu::Column::Url.contains(&self.url))
-            .one(&db)
-            .await?;
 
         let menu_id_org = self.id;
         let mut boards = Vec::new();

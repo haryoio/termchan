@@ -1,5 +1,3 @@
-use tui::layout::Rect;
-
 use super::mylist::ListState;
 
 #[derive(Debug, Clone)]

@@ -27,7 +27,7 @@ use crate::{
     state::{
         layout::Pane,
         post::ThreadPostStateItem,
-        tab::{LeftTabItem, RightTabItem, TabsState},
+        tab::{LeftTabItem, TabsState},
         thread::ThreadStateItem,
     },
 };
@@ -81,7 +81,7 @@ fn draw_right_panel<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
 
     f.render_widget(top_block, area);
 
-    let tab_chunk = layout[0];
+    let _tab_chunk = layout[0];
     let content_chunk = layout[1];
     {
         // draw_tabs(f, &app.theme, &mut app.right_tabs, is_focused, tab_chunk).await;

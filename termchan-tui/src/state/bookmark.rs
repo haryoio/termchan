@@ -1,20 +1,7 @@
-use entity::{board, board_bookmark, category, menu, prelude::*, thread};
-use eyre::{bail, Error, Result};
-use migration::{
-    async_trait::{self, async_trait},
-    JoinType,
-    OnConflict,
-};
-use sea_orm::{
-    ActiveModelTrait,
-    ColumnTrait,
-    EntityTrait,
-    FromQueryResult,
-    QueryFilter,
-    QuerySelect,
-    RelationTrait,
-    Set,
-};
+use entity::{board, board_bookmark, prelude::*, thread};
+use eyre::{bail, Result};
+use migration::OnConflict;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use termchan_core::get::board::Board;
 
 use crate::database::connect::establish_connection;
@@ -117,7 +104,7 @@ impl BookmarkStateItem {
                 ..Default::default()
             });
         }
-        let res = Thread::insert_many(new_threads)
+        let _ = Thread::insert_many(new_threads)
             .on_conflict(
                 OnConflict::column(thread::Column::Url)
                     .update_column(thread::Column::Count)

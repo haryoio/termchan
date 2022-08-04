@@ -50,11 +50,11 @@ jobs:
                   echo "TAG_NAME=${TAG_NAME#refs/tags/}">> $GITHUB_ENV
             - if: env.TAG_NAME != 'nightly'
               run: |
-                  (echo 'SUBJECT=Lapce release build';
+                  (echo 'SUBJECT=termchan release build';
                   echo 'PRERELEASE=') >> $GITHUB_ENV
 
             - name: Publish release
               env:
                   DEBUG: api
               run: |
-                  gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA termchan-linux*
+                  gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA termchan-linux/*

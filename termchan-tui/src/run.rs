@@ -1,8 +1,4 @@
-use std::{
-    error::Error,
-    io::{self, Write},
-    process,
-};
+use std::{error::Error, io};
 
 use termion::raw::{IntoRawMode, RawTerminal};
 

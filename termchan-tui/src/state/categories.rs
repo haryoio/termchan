@@ -1,7 +1,6 @@
-use entity::{board, category, menu, prelude::*};
-use eyre::{bail, Error, Result};
-use migration::async_trait::{self, async_trait};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use entity::category;
+use eyre::Result;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
 use crate::database::connect::establish_connection;
 #[derive(Debug, Clone)]

@@ -1,10 +1,10 @@
-use derive_more::{Add, Display};
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use tui::style::Style;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Words {}
 
+#[allow(dead_code)]
 #[derive(Display, Debug)]
 pub enum Help {
     #[display(
@@ -22,9 +22,4 @@ pub enum Help {
     Thread,
     Bookmark,
     Settings,
-}
-
-pub struct Word {
-    pub text:  String,
-    pub style: Style,
 }

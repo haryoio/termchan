@@ -1,12 +1,5 @@
 use std::fmt::Display;
 
-use entity::{board, category, menu, prelude::*};
-use eyre::{bail, Error, Result};
-use migration::async_trait::{self, async_trait};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-
-use crate::database::connect::establish_connection;
-
 #[derive(Debug, Clone)]
 pub enum HomeItem {
     Bookmark,
@@ -32,13 +25,5 @@ pub struct HomeStateItem {
 impl HomeStateItem {
     pub fn new(item: HomeItem) -> Self {
         HomeStateItem { item }
-    }
-
-    pub fn init_vec() -> Vec<HomeStateItem> {
-        vec![
-            HomeStateItem::new(HomeItem::Bookmark),
-            HomeStateItem::new(HomeItem::AllChannels),
-            HomeStateItem::new(HomeItem::Settings),
-        ]
     }
 }

@@ -1,11 +1,4 @@
-use chrono::TimeZone;
-use chrono_tz::Asia::Tokyo;
 use eyre::Result;
-use termchan_core::get::{
-    bbsmenu::{Bbsmenu, CategoryContent, CategoryItem},
-    board::{Board, ThreadSubject},
-    thread::{Thread, ThreadPost, ThreadResponse},
-};
 
 use crate::{
     config::Theme,
@@ -102,6 +95,7 @@ impl App {
 }
 
 // GET
+#[allow(dead_code)]
 impl App {
     pub fn get_menu_id(&mut self) -> i32 {
         self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id
@@ -293,9 +287,7 @@ impl App {
             }
             Event::Right => {
                 if self.layout.focus_pane == Pane::Main {
-                    let menu_id = self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id;
-                    let category_id =
-                        self.categories.items[self.categories.state.selected().unwrap_or(0)].id;
+                    self.categories.items[self.categories.state.selected().unwrap_or(0)].id;
                     self.right_tabs.next();
                 }
                 Ok(())
@@ -417,7 +409,7 @@ impl App {
                                     board.name
                                 ));
                             }
-                            Err(e) => {
+                            Err(_) => {
                                 self.update_message(format!(
                                     "ブックマークへの追加に失敗しました。: {}",
                                     board.name
@@ -435,7 +427,7 @@ impl App {
                                     bookmark.name
                                 ));
                             }
-                            Err(e) => {
+                            Err(_) => {
                                 self.update_message(format!(
                                     "ブックマークの削除に失敗しました。: {}",
                                     bookmark.name

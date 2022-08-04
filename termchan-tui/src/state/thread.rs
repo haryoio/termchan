@@ -1,9 +1,6 @@
-use entity::{board, category, menu, prelude::*, thread, thread_post};
-use eyre::{bail, Error, Result};
-use migration::{
-    async_trait::{self, async_trait},
-    OnConflict,
-};
+use entity::{prelude::*, thread, thread_post};
+use eyre::Result;
+use migration::OnConflict;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
 use termchan_core::get::thread::Thread;
 

@@ -1,12 +1,8 @@
-use entity::{board, category, menu, prelude::*, thread};
-use eyre::{bail, Error, Result};
-use migration::{
-    async_trait::{self, async_trait},
-    OnConflict,
-};
+use entity::{board, prelude::*, thread};
+use eyre::Result;
+use migration::OnConflict;
 use sea_orm::{
     sea_query::{Expr, Value},
-    ActiveModelTrait,
     ColumnTrait,
     EntityTrait,
     QueryFilter,
@@ -53,6 +49,7 @@ impl BoardStateItem {
         }
         Ok(board_state_item)
     }
+
     /// 板URLからスレッド一覧を取得する。
     pub async fn fetch(&self) -> Result<()> {
         let db = establish_connection().await?;
@@ -82,8 +79,8 @@ impl BoardStateItem {
             .exec(&db)
             .await?;
 
-        /// Dat落ちしていないスレッドはDat落ちが解除される。
-        let res = Thread::insert_many(new_threads)
+        // Dat落ちしていないスレッドはDat落ちが解除される。
+        let _ = Thread::insert_many(new_threads)
             .on_conflict(
                 OnConflict::column(thread::Column::Url)
                     .update_columns(vec![thread::Column::Count])

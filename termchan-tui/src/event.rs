@@ -1,6 +1,6 @@
 use std::{io, time::Duration};
 
-use derive_more::{Add, Display};
+use derive_more::Display;
 use termion::{
     event::{Event as TermionEvent, Key},
     input::TermRead,
@@ -69,31 +69,6 @@ pub async fn event_sender() -> Receiver<Command> {
     rx
 }
 
-// pub async fn event_handler<'a>(rx: Arc<Mutex<Receiver<Command>>>, app: &mut App) {
-//     use Command::*;
-//     let mut rx = rx.lock().await;
-//     while let Some(message) = rx.recv().await {
-//         match message {
-//             Input(key) => {
-//                 use termion::event::Key::*;
-//                 match key {
-//                     Char('q') => process::exit(0),
-//                     Ctrl('b') => app.layout.toggle_visible_sidepane(),
-//                     Char('\t') => app.layout.toggle_focus_pane(),
-//                     Char('l') => app.update(Event::Get).await,
-//                     Char('c') => println!("{:?}", app.category),
-//                     Char('t') => app.update(Event::Tab).await,
-//                     Char('j') | Down => app.update(Event::Down).await,
-//                     Char('k') | Up => app.update(Event::Up).await,
-//                     _ => {}
-//                 }
-//             }
-//             Tick => {}
-//             _ => unimplemented!(),
-//         }
-//     }
-// }
-
 #[derive(Debug, Clone, Display)]
 pub enum Sort {
     #[display(fmt = "スレ順({})", _0)]
@@ -119,5 +94,3 @@ pub enum Order {
     #[display(fmt = "降順")]
     Desc,
 }
-
-pub enum Filter {}

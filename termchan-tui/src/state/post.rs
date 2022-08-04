@@ -1,11 +1,6 @@
-use entity::{board, category, menu, prelude::*, thread, thread_post};
-use eyre::{bail, Error, Result};
-use migration::{
-    async_trait::{self, async_trait},
-    OnConflict,
-};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-use serde_json::json;
+use entity::thread_post;
+use eyre::Result;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use termchan_core::get::message::Message;
 
 use crate::database::connect::establish_connection;

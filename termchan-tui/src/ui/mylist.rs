@@ -94,6 +94,7 @@ pub struct List<'a> {
     repeat_highlight_symbol: bool,
 }
 
+#[allow(dead_code)]
 impl<'a> List<'a> {
     pub fn new<T>(items: T) -> List<'a>
     where
