@@ -23,7 +23,7 @@ jobs:
               run: cargo build --profile release --bin termchan
             - name: Gzip
               run: |
-                  cp ./target/release/termchan termchan/
+                  cp ./target/release/termchan ./termchan
                   tar -zcvf termchan-linux.tar.gz termchan
             - uses: actions/upload-artifact@v3
               with:
@@ -57,4 +57,4 @@ jobs:
               env:
                   DEBUG: api
               run: |
-                  gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA termchan-linux/*
+                  gh release create $TAG_NAME $PRERELEASE --title "$TAG_NAME" --target $GITHUB_SHA termchan-linux*
