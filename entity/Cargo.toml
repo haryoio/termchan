@@ -1,0 +1,15 @@
+[package]
+name = "entity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sea-orm = "0.9.1"
+
+[dependencies.sea-orm-migration]
+version = "^0.9.1"
+features = [
+    "sqlx-sqlite",
+    "runtime-tokio-rustls",
+
+]
