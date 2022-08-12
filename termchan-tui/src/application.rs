@@ -1,4 +1,21 @@
-use eyre::Result;
+use eyre::{bail, Result};
+use rayon::slice::ParallelSliceMut;
+use termchan_core::post::reply::post_reply;
+use tui_textarea::TextArea;
+
+const HEADER: &str = r#"accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9
+accept-encoding: gzip, deflate, br
+accept-language: en-US,en;q=0.9
+sec-ch-ua: "Chromium";v="104", " Not A;Brand";v="99", "Google Chrome";v="104"
+sec-ch-ua-mobile: ?1
+sec-ch-ua-platform: "Android"
+sec-fetch-dest: document
+sec-fetch-mode: navigate
+sec-fetch-site: same-site
+sec-fetch-user: ?1
+upgrade-insecure-requests: 1
+user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Mobile Safari/537.36
+"#;
 
 use crate::{
     config::Theme,
@@ -18,7 +35,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct App {
+pub struct App<'a> {
     pub message:    String,
     pub right_tabs: TabsState<RightTabItem>,
     pub left_tabs:  TabsState<LeftTabItem>,
@@ -34,9 +51,16 @@ pub struct App {
     pub thread:     StatefulList<ThreadPostStateItem>,
 
     pub sort: StatefulList<Sort>,
+
+    pub thread_textareas:       Vec<TextArea<'a>>,
+    pub thread_textareas_which: usize,
+    pub board_textareas:        Vec<TextArea<'a>>,
+    pub board_textareas_which:  usize,
+
+    pub input_mode: bool,
 }
 
-impl App {
+impl App<'_> {
     pub fn new() -> Self {
         let left_tabs = TabsState::new(vec![LeftTabItem::Home]);
         let right_tabs = TabsState::new(vec![]);
@@ -76,6 +100,9 @@ impl App {
         .loop_items(true)
         .clone();
 
+        let thread_textareas = vec![TextArea::default(); 3];
+        let board_textareas = vec![TextArea::default(); 4];
+
         App {
             left_tabs,
             right_tabs,
@@ -90,13 +117,18 @@ impl App {
             board,
             thread,
             sort,
+            thread_textareas,
+            thread_textareas_which: 0,
+            board_textareas,
+            board_textareas_which: 0,
+            input_mode: false,
         }
     }
 }
 
 // GET
 #[allow(dead_code)]
-impl App {
+impl App<'_> {
     pub fn get_menu_id(&mut self) -> i32 {
         self.bbsmenu.items[self.bbsmenu.state.selected().unwrap_or(0)].id
     }
@@ -112,10 +144,10 @@ impl App {
         self.categories.items[self.categories.state.selected().unwrap_or(0)].id
     }
     pub fn get_board_id(&self) -> i32 {
-        self.category.items[self.category.state.selected().unwrap_or(0)].id
+        self.category.items[self.category.selected()].id
     }
     pub fn get_thread_id(&self) -> i32 {
-        self.board.items[self.board.state.selected().unwrap_or(0)].id
+        self.board.items[self.board.selected()].id
     }
     pub fn get_thread_post_id(&self) -> i32 {
         self.thread.items[self.thread.state.selected().unwrap_or(0)].id
@@ -129,7 +161,7 @@ impl App {
     }
 }
 
-impl App {
+impl App<'_> {
     pub async fn update(&mut self, event: Event) -> Result<()> {
         match event {
             Event::Get => {
@@ -141,7 +173,16 @@ impl App {
                             LeftTabItem::Bbsmenu => self.update_bbsmenu().await?,
                             LeftTabItem::Categories => self.update_categories().await?,
                             LeftTabItem::Category(..) => self.update_category().await?,
-                            LeftTabItem::Board(..) => self.update_board().await?,
+                            LeftTabItem::Board(..) => {
+                                info!("{}", self.left_tabs.titles.len());
+                                if self.left_tabs.titles.len() <= 4 {
+                                    info!("bookmark update");
+                                    self.update_board_from_bookmark().await?;
+                                } else {
+                                    info!("board update");
+                                    self.update_board().await?
+                                }
+                            }
                             LeftTabItem::Settings => (),
                         }
                     }
@@ -277,7 +318,7 @@ impl App {
                     Pane::Main => {
                         match self.right_tabs.get() {
                             RightTabItem::Thread(..) => {
-                                self.layout.toggle_focus_pane();
+                                self.layout.focus_pane = Pane::Side;
                             }
                         }
                         Ok(())
@@ -299,7 +340,43 @@ impl App {
                 }
                 Ok(())
             }
-            Event::Tab => Ok(()),
+            Event::Tab => {
+                if self.layout.visible_popup {
+                    match self.layout.focus_pane {
+                        Pane::Main => {
+                            if self.thread_textareas.len() - 1 == self.thread_textareas_which {
+                                self.thread_textareas_which = 0;
+                            } else {
+                                self.thread_textareas_which += 1;
+                            }
+                        }
+                        Pane::Side => {
+                            if self.board_textareas.len() - 1 == self.board_textareas_which {
+                                self.board_textareas_which = 0;
+                            } else {
+                                self.board_textareas_which += 1;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                if self.layout.focus_pane == Pane::Side {
+                    self.layout.focus_pane = Pane::Main;
+                } else {
+                    self.layout.focus_pane = Pane::Side;
+                }
+
+                Ok(())
+            }
+            Event::BackTab => {
+                if self.layout.focus_pane == Pane::Side {
+                    self.layout.focus_pane = Pane::Main;
+                } else {
+                    self.layout.focus_pane = Pane::Side;
+                }
+                Ok(())
+            }
             Event::Enter => {
                 match self.layout.focus_pane {
                     Pane::Side => {
@@ -308,10 +385,12 @@ impl App {
                                 let home_item = self.home.items[self.home.selected()].clone().item;
                                 match home_item {
                                     HomeItem::Bookmark => {
-                                        self.update_bookmark().await?;
-                                        self.layout.focus_pane = Pane::Side;
-                                        self.left_tabs.history_add(LeftTabItem::Bookmarks);
-                                        self.left_tabs.next();
+                                        let res = self.update_bookmark().await;
+                                        if res.is_ok() {
+                                            self.layout.focus_pane = Pane::Side;
+                                            self.left_tabs.history_add(LeftTabItem::Bookmarks);
+                                            self.left_tabs.next();
+                                        }
                                     }
                                     HomeItem::Settings => {
                                         self.layout.focus_pane = Pane::Side;
@@ -348,10 +427,8 @@ impl App {
                                 self.left_tabs.next();
                             }
                             LeftTabItem::Category(..) => {
-                                {
-                                    let _ = self.update_board().await;
-                                    self.layout.focus_pane = Pane::Side;
-                                }
+                                let _ = self.update_board().await;
+                                self.layout.focus_pane = Pane::Side;
 
                                 let categ = self.category.items
                                     [self.category.state.selected().unwrap()]
@@ -370,7 +447,6 @@ impl App {
                                     .history_add(RightTabItem::Thread(board.name, board.url));
 
                                 self.layout.focus_pane = Pane::Main;
-                                self.right_tabs.next();
                             }
                             LeftTabItem::Settings => {
                                 self.layout.focus_pane = Pane::Main;
@@ -385,11 +461,13 @@ impl App {
                     Pane::Main => {
                         match self.right_tabs.get() {
                             RightTabItem::Thread(..) => {
-                                // self.left_tabs.set(LeftTabItem::Bbsmenu);
+                                self.layout.visible_popup = true;
                             }
                         }
+
                         Ok(())
                     }
+
                     _ => Ok(()),
                 }
             }
@@ -441,10 +519,146 @@ impl App {
             }
             Event::ToggleFilter => {
                 self.sort.next();
+                self.sort_board().await?;
                 Ok(())
             }
-            _ => Ok(()),
+            Event::ClosePopup => {
+                self.layout.visible_popup = false;
+                Ok(())
+            }
+            Event::DisableInputMode => {
+                self.input_mode = false;
+                Ok(())
+            }
+            Event::EnableInputMode => {
+                self.input_mode = true;
+                Ok(())
+            }
+            Event::ToggleTextArea => {
+                if self.layout.visible_popup {
+                    if self.layout.focus_pane == Pane::Main {
+                        self.thread_textareas_which =
+                            (self.thread_textareas_which + 1) % self.thread_textareas.len();
+                    } else if self.layout.focus_pane == Pane::Side {
+                        self.board_textareas_which =
+                            (self.board_textareas_which + 1) % self.board_textareas.len() - 1;
+                    }
+                }
+                Ok(())
+            }
+            Event::Input(input) => {
+                if self.input_mode {
+                    match self.layout.focus_pane {
+                        Pane::Main => {
+                            self.thread_textareas[self.thread_textareas_which].input(input);
+                        }
+                        Pane::Side => {
+                            self.board_textareas[self.board_textareas_which].input(input);
+                        }
+                        _ => {}
+                    }
+                }
+
+                Ok(())
+            }
+            Event::Post => {
+                if self.layout.visible_popup {
+                    match self.layout.focus_pane {
+                        Pane::Main => {
+                            let url = self.board.items[self.board.selected()].url.clone();
+                            let name = if !self.thread_textareas[0].is_empty() {
+                                let name = self.thread_textareas[0].lines().join("\n");
+                                Some(name)
+                            } else {
+                                None
+                            };
+                            let mail = if !self.thread_textareas[1].is_empty() {
+                                let mail = self.thread_textareas[1].lines().clone().join("\n");
+                                Some(mail)
+                            } else {
+                                None
+                            };
+
+                            let comment = self.thread_textareas[2].lines().join("\n");
+                            println!("{} {:?} {:?} {:?}", url, name, mail, comment);
+                            let res = post_reply(
+                                &url,
+                                &comment,
+                                name,
+                                mail,
+                                HEADER.to_string().to_string(),
+                                None,
+                            )
+                            .await;
+                            match res {
+                                Ok(message) => {
+                                    warn!("{}", message);
+                                    self.update_message(format!(
+                                        "投稿に成功しました。: {}",
+                                        message
+                                    ));
+                                }
+                                Err(_) => {
+                                    self.update_message(format!("投稿に失敗しました。"));
+                                }
+                            }
+                        }
+                        Pane::Side => {}
+                        _ => {}
+                    }
+                }
+                Ok(())
+            }
+            Event::Exit => todo!(),
+            Event::ToggleSidepane => todo!(),
+            Event::ToggleFocusPane => todo!(),
+            Event::FocusNextPane => todo!(),
+            Event::FocusPrevPane => todo!(),
+            Event::NextTab => todo!(),
+            Event::ToggleInputMode => todo!(),
         }
+    }
+
+    pub async fn sort_board(&mut self) -> Result<()> {
+        let sort_type = self.get_sort_order();
+        self.board.items.par_sort_by(|a, b| {
+            match sort_type.clone() {
+                crate::event::Sort::None(order) => {
+                    match order {
+                        crate::event::Order::Asc => a.index.cmp(&b.index),
+                        crate::event::Order::Desc => b.index.cmp(&a.index),
+                    }
+                }
+                crate::event::Sort::Ikioi(order) => {
+                    match order {
+                        crate::event::Order::Asc => a.ikioi.partial_cmp(&b.ikioi).unwrap(),
+                        crate::event::Order::Desc => b.ikioi.partial_cmp(&a.ikioi).unwrap(),
+                    }
+                }
+                crate::event::Sort::Latest(order) => {
+                    match order {
+                        crate::event::Order::Asc => {
+                            a.created_time.partial_cmp(&b.created_time).unwrap()
+                        }
+                        crate::event::Order::Desc => {
+                            b.created_time.partial_cmp(&a.created_time).unwrap()
+                        }
+                    }
+                }
+                crate::event::Sort::AlreadyRead(order) => {
+                    match order {
+                        crate::event::Order::Asc => {
+                            a.before_read.partial_cmp(&b.before_read).unwrap()
+                        }
+                        crate::event::Order::Desc => {
+                            b.before_read.partial_cmp(&a.before_read).unwrap()
+                        }
+                    }
+                }
+            }
+        });
+
+        Ok(())
     }
 
     pub fn update_message(&mut self, message: String) {
@@ -452,20 +666,17 @@ impl App {
     }
 
     pub async fn update_bookmark(&mut self) -> Result<()> {
-        let bookmarks = BookmarkStateItem::get_all().await?;
-        self.bookmark.set_items(bookmarks);
-        Ok(())
-    }
-
-    pub async fn update_board_from_bookmark(&mut self) -> Result<()> {
-        self.bookmark.items[self.bookmark.selected()]
-            .clone()
-            .fetch()
-            .await?;
-
-        let board_id = self.get_board_id_by_bookmark();
-        self.board
-            .set_items(ThreadStateItem::get_by_board_id(board_id).await?);
+        let bookmarks = BookmarkStateItem::get_all().await;
+        match bookmarks {
+            Ok(bookmarks) => {
+                self.bookmark.set_items(bookmarks);
+            }
+            Err(e) => {
+                error!("{}", e);
+                self.update_message(format!("ブックマークの取得に失敗しました。"));
+                bail!(e);
+            }
+        }
         Ok(())
     }
 
@@ -492,14 +703,29 @@ impl App {
         Ok(())
     }
 
+    pub async fn update_board_from_bookmark(&mut self) -> Result<()> {
+        self.bookmark.items[self.bookmark.selected()]
+            .clone()
+            .fetch()
+            .await?;
+        let board_id = self.get_board_id_by_bookmark();
+        let items = ThreadStateItem::get_by_board_id(board_id).await?;
+
+        self.board.set_items(items);
+        self.sort_board().await?;
+        Ok(())
+    }
+
     pub async fn update_board(&mut self) -> Result<()> {
         self.category.items[self.category.selected()]
             .clone()
             .fetch()
             .await?;
         let board_id = self.get_board_id();
-        self.board
-            .set_items(ThreadStateItem::get_by_board_id(board_id).await?);
+        let items = ThreadStateItem::get_by_board_id(board_id).await?;
+
+        self.board.set_items(items);
+        self.sort_board().await?;
         Ok(())
     }
 
@@ -510,8 +736,10 @@ impl App {
             .await?;
 
         let thread_id = self.get_thread_id();
-        self.thread
-            .set_items(ThreadPostStateItem::get_by_thread_id(thread_id).await?);
+        let res = ThreadStateItem::update_is_read(thread_id).await?;
+        warn!("{:?}", res);
+        let threads = ThreadPostStateItem::get_by_thread_id(thread_id).await?;
+        self.thread.set_items(threads);
         Ok(())
     }
 }

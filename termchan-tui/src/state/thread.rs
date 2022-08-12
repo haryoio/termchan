@@ -1,36 +1,38 @@
 use entity::{prelude::*, thread, thread_post};
 use eyre::Result;
-use migration::OnConflict;
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use migration::{DbErr, Expr, OnConflict};
+use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use termchan_core::get::thread::Thread;
 
 use crate::database::connect::establish_connection;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct ThreadStateItem {
-    pub id:          i32,
-    pub url:         String,
-    pub name:        String,
-    pub count:       i32,
-    pub ikioi:       f64,
-    pub updated_at:  String,
-    pub is_read:     bool,
-    pub stopdone:    bool,
-    pub before_read: i32,
+    pub id:           i32,
+    pub index:        i32,
+    pub url:          String,
+    pub name:         String,
+    pub count:        i32,
+    pub ikioi:        f64,
+    pub created_time: i64,
+    pub is_read:      bool,
+    pub stopdone:     bool,
+    pub before_read:  i32,
 }
 
 impl Default for ThreadStateItem {
     fn default() -> Self {
         ThreadStateItem {
-            id:          0,
-            url:         String::new(),
-            name:        String::new(),
-            count:       0,
-            ikioi:       0.0,
-            updated_at:  String::new(),
-            is_read:     false,
-            stopdone:    false,
-            before_read: 0,
+            id:           0,
+            index:        0,
+            url:          String::new(),
+            name:         String::new(),
+            count:        0,
+            ikioi:        0.0,
+            created_time: 0,
+            is_read:      false,
+            stopdone:     false,
+            before_read:  0,
         }
     }
 }
@@ -38,30 +40,61 @@ impl Default for ThreadStateItem {
 impl ThreadStateItem {
     pub async fn get_by_board_id(board_id: i32) -> Result<Vec<ThreadStateItem>> {
         let db = establish_connection().await?;
-        let threads = thread::Entity::find()
+        let threads: Result<Vec<thread::Model>, DbErr> = thread::Entity::find()
             .filter(thread::Column::BoardId.eq(board_id))
             .all(&db)
-            .await?;
+            .await;
+
+        let threads = match threads {
+            Ok(threads) => threads,
+            Err(e) => {
+                warn!("{}", e);
+                eyre::bail!(e);
+            }
+        };
+
+        warn!("thread len {}", threads.len());
+
         let mut thread_state_item = Vec::new();
         for thread in threads {
             thread_state_item.push(ThreadStateItem {
-                id:          thread.id,
-                url:         thread.url.to_string(),
-                name:        thread.name.to_string(),
-                count:       thread.count,
-                ikioi:       thread.ikioi.unwrap_or(0.0),
-                updated_at:  thread.updated_at.unwrap_or_default(),
-                is_read:     thread.is_read,
-                stopdone:    thread.stopdone,
-                before_read: thread.before_read,
+                id:           thread.id,
+                index:        thread.index,
+                url:          thread.url.to_string(),
+                name:         thread.name.to_string(),
+                count:        thread.count,
+                ikioi:        thread.ikioi.unwrap_or(0.0),
+                created_time: thread.created_time.unwrap_or_default(),
+                is_read:      thread.is_read,
+                stopdone:     thread.stopdone,
+                before_read:  thread.before_read,
             });
         }
         Ok(thread_state_item)
     }
 
+    pub async fn update_is_read(thread_id: i32) -> Result<()> {
+        let db = establish_connection().await?;
+        let res = thread::Entity::update_many()
+            .col_expr(thread::Column::IsRead, Expr::value(true))
+            .filter(thread::Column::Id.eq(thread_id))
+            .exec(&db)
+            .await?;
+
+        let updated = thread::Entity::find()
+            .filter(thread::Column::Id.eq(thread_id))
+            .one(&db)
+            .await?;
+        info!("{:?}", updated);
+        Ok(())
+    }
+
     pub async fn fetch(&self) -> Result<()> {
         let db = establish_connection().await?;
+        warn!("update kidoku");
         let res = Thread::new(self.url.to_string())?.get().await?;
+
+        warn!("fetched thread");
         let mut new_posts = vec![];
         for item in res.posts {
             new_posts.push(thread_post::ActiveModel {
@@ -77,7 +110,7 @@ impl ThreadStateItem {
             });
         }
 
-        let res = ThreadPost::insert_many(new_posts)
+        let _ = ThreadPost::insert_many(new_posts)
             .on_conflict(
                 OnConflict::column(thread_post::Column::ThreadIdIndex)
                     // 被アンカー数が変わるので、Messageを更新する必要がある。

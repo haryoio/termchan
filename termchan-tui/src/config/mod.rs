@@ -1,8 +1,31 @@
+pub mod credentials;
+pub mod dirs;
+use std::{
+    fs::OpenOptions,
+    io::{BufReader, BufWriter},
+    path::{Path, PathBuf},
+};
+
+use eyre::Result;
 use serde::{Deserialize, Serialize};
 use tui::{style::Color, widgets::BorderType as TuiBorderType};
 
+use self::dirs::Dir;
+
+#[cfg(target_os = "linux")]
+static DEFAULT_CONFIG_PATH: &str = "/etc/termchan.toml";
+
+#[cfg(target_os = "macos")]
+static DEFAULT_CONFIG_PATH: &str = "/usr/local/etc/termchan.toml";
+
+#[cfg(target_os = "windows")]
+static DEFAULT_CONFIG_PATH: &str = "C:\\Windows\\Temp\\termchan.toml";
+
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Config {
+    ///
+    pub config_path: Option<String>,
+
     pub bbsmenu_url_list: Vec<String>,
 
     /// サムネイルのサイズ(wip)
@@ -30,13 +53,42 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            bbsmenu_url_list: vec![],
-
+            config_path:          None,
+            bbsmenu_url_list:     vec![],
             thumbnail_size:       ThumbnailSize::Small,
             thumbnail_cache_size: "100M".to_string(),
             cache_dir:            "/var/tmp/termchan/cache".to_string(),
             theme:                Theme::default(),
         }
+    }
+}
+
+impl Config {
+    pub fn get_config() -> Result<Config> {
+        let config_path = Dir::get_config_path()?;
+        let config = Self::load_config(&config_path);
+        let config = config.unwrap_or_else(|_| Config::default());
+        Ok(config)
+    }
+    pub fn load_config<P: AsRef<Path>>(config_path: P) -> Result<Config> {
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(config_path)?;
+        let reader = BufReader::new(file);
+        let config: Config = serde_json::from_reader(reader)?;
+        Ok(config)
+    }
+    pub fn update_config(config: Config) -> Result<Config> {
+        let config_path = Dir::get_config_path()?;
+        let file = OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(config_path)?;
+        let writer = BufWriter::new(file);
+        serde_json::to_writer(writer, &config)?;
+        Ok(config)
     }
 }
 
@@ -136,5 +188,10 @@ impl Theme {
             BorderType::Double => TuiBorderType::Double,
             BorderType::Thick => TuiBorderType::Thick,
         }
+    }
+}
+
+impl Config {
+    pub fn load(&self) {
     }
 }

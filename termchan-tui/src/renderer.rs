@@ -22,7 +22,6 @@ impl<W: Write> Renderer<W> {
     pub fn exit(&mut self) -> Result<()> {
         self.terminal.show_cursor()?;
         self.terminal.clear()?;
-        self.terminal.flush()?;
         process::exit(0);
     }
 }
@@ -30,7 +29,7 @@ impl<W: Write> Renderer<W> {
 impl<W: Write> Drop for Renderer<W> {
     fn drop(&mut self) {
         self.terminal.show_cursor().expect("Failed to show cursor");
-        // self.terminal.clear();
+        self.terminal.clear().expect("Failed to clear screen");
         if std::thread::panicking() {
             self.terminal.clear().expect("Failed to clear screen");
         }

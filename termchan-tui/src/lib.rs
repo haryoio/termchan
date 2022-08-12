@@ -1,3 +1,6 @@
+#[macro_use] extern crate log;
+#[macro_use] extern crate log4rs;
+
 mod application;
 mod config;
 mod database;

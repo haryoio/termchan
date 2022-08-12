@@ -14,18 +14,19 @@ pub struct ReplyFormData {
     time:           String,
     submit:         String,
     oekaki_thread1: String,
+    sid:            String,
 }
 
 impl ReplyFormData {
     pub fn new(
         message: &str,
-        email: Option<&str>,
-        name: Option<&str>,
+        email: Option<String>,
+        name: Option<String>,
         thread_params: &ThreadParams,
     ) -> Self {
         let time = unix_now_time().to_string();
-        let name = name.unwrap_or("").to_string();
-        let mail = email.unwrap_or("").to_string();
+        let name = name.unwrap_or("".to_string());
+        let mail = email.unwrap_or("".to_string());
         ReplyFormData {
             name,
             mail,
@@ -35,6 +36,7 @@ impl ReplyFormData {
             time,
             submit: "書き込む".to_string(),
             oekaki_thread1: "".to_string(),
+            sid: "".to_string(),
         }
     }
 
@@ -47,7 +49,8 @@ impl ReplyFormData {
         form.insert("key", &self.key);
         form.insert("time", &self.time);
         form.insert("submit", &self.submit);
-        form.insert("oekaki_thread1", &self.oekaki_thread1);
+        form.insert("sid", &self.sid);
+
         form.iter_mut()
             .map(|(k, v)| (*k, utf8_to_sjis_string(v)))
             .collect::<HashMap<_, _>>()

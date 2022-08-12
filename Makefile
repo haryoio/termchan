@@ -1,8 +1,8 @@
 PROJECT_NAME = "termchan"
 DEPENDENICIES = "cargo-watch"
-ERROR_LOG = "termchan.log"
-DB_FILE = "termchan.db"
-DB_PATH = "/var/tmp/"
+ERROR_LOG =termchan.log
+DB_FILE=termchan.db
+DB_PATH=/var/tmp/
 
 .PHONY: deps
 deps:
@@ -11,7 +11,7 @@ deps:
 .PHONY: client
 client:
 	clear
-	cargo run -p $@ 2> $(ERROR_LOG)
+	cargo run -p termchan-tui 2> $(ERROR_LOG)
 	clear
 
 .PHONY: fmt
@@ -40,7 +40,7 @@ migrateup:
 
 .PHONY: rmdb
 rmdb:
-	rm -rf $(DB_PATH)$(DB_FILE)
+	rm -rf $(DB_PATH)$(DB_FILE)*
 
 .PHONY: db
 db:

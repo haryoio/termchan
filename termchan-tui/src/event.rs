@@ -2,11 +2,12 @@ use std::{io, time::Duration};
 
 use derive_more::Display;
 use termion::{
-    event::{Event as TermionEvent, Key},
+    event::{Event as TermionEvent, Key, MouseEvent as TermionMouseEvent},
     input::TermRead,
     raw::IntoRawMode,
 };
 use tokio::sync::mpsc::{self, Receiver};
+use tui_textarea::Input;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -14,6 +15,7 @@ pub enum Command {
     Exit,
     Input(Key),
     Tick,
+    Event(TermionEvent),
 }
 
 #[allow(dead_code)]
@@ -39,6 +41,12 @@ pub enum Event {
     ScrollToTop,
     ScrollToBottom,
     Message(String),
+    ClosePopup,
+    ToggleInputMode,
+    EnableInputMode,
+    DisableInputMode,
+    ToggleTextArea,
+    Input(Input),
 }
 // send event to event_handler
 pub async fn event_sender() -> Receiver<Command> {
@@ -48,11 +56,55 @@ pub async fn event_sender() -> Receiver<Command> {
         let tx = key_tx.clone();
         let _raw_term = std::io::stdout().into_raw_mode().unwrap();
         let stdin = io::stdin();
+        // マウスのスクロールイベントが３連続で発生するのでiカウントして3回溜まったらttイベントを発生させる
+        let mut scrollup_count = 0;
+        let mut scrolldown_count = 0;
+        let mut before_click_time = std::time::Instant::now();
         for evt in stdin.events().map(|evt| evt.unwrap()) {
-            match evt {
-                TermionEvent::Key(key) => {
-                    let _ = tx.send(Command::Input(key)).await;
+            let ev = evt.clone();
+            match ev {
+                TermionEvent::Key(_) => {
+                    // マウスの中ボタンを押したとき、Enterが連続で発生するのを防ぐ
+                    let now = std::time::Instant::now();
+                    if before_click_time.elapsed().as_millis() - now.elapsed().as_millis() > 500 {
+                        if let Err(e) = tx.send(Command::Event(evt)).await {
+                            eprintln!("{}", e);
+                            break;
+                        }
+                    } else {
+                        before_click_time = std::time::Instant::now();
+                    }
                 }
+                // マウスのuスクロールイベントはTermionではUnsupportedとなっている
+                // TODO! Windows, Macでのo挙動を確認する
+                TermionEvent::Unsupported(s) => {
+                    match s.clone().as_slice() {
+                        [0x1b, 0x4f, 0x42] => {
+                            if scrolldown_count >= 3 {
+                                tx.send(Command::Event(TermionEvent::Key(Key::Down)))
+                                    .await
+                                    .unwrap();
+                                scrolldown_count = 0;
+                            } else {
+                                scrolldown_count += 1;
+                            }
+                        }
+                        [0x1b, 0x4f, 0x41] => {
+                            if scrollup_count >= 3 {
+                                tx.send(Command::Event(TermionEvent::Key(Key::Up)))
+                                    .await
+                                    .unwrap();
+                                scrollup_count = 0;
+                            } else {
+                                scrollup_count += 1;
+                            }
+                        }
+                        a => {
+                            panic!("unsupported {:?}", a);
+                        }
+                    }
+                }
+
                 _ => {}
             }
         }

@@ -18,12 +18,12 @@ impl Display for LeftTabItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Home => write!(f, "Home"),
-            Self::Bookmarks => write!(f, "Bookmarks"),
-            Self::Bbsmenu => write!(f, "BBSmenu"),
-            Self::Categories => write!(f, "Categories"),
+            Self::Bookmarks => write!(f, "お気に入り"),
+            Self::Bbsmenu => write!(f, "板"),
+            Self::Categories => write!(f, "カテゴリ"),
             Self::Category(title) => write!(f, "{}", title),
             Self::Board(title) => write!(f, "{}", title),
-            Self::Settings => write!(f, "Settings"),
+            Self::Settings => write!(f, "設定"),
         }
     }
 }
