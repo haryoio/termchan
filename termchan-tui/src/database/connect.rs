@@ -1,4 +1,4 @@
-use eyre::{bail, Error, Result};
+use eyre::{bail, Result};
 use migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DbConn};
 

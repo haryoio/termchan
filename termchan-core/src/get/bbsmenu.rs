@@ -133,6 +133,7 @@ mod bbsmenu_tests {
     async fn bbsmenu_test() {
         let bbsmenu = Bbsmenu::new("https://menu.open2ch.net/bbsmenu.html".to_string()).unwrap();
         let bbsmenu_schema = bbsmenu.get().await.unwrap();
+        println!("{:?}", bbsmenu_schema);
     }
 
     #[tokio::test]

@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
-use eyre::{bail, Result};
-use reqwest::{
-    cookie::{CookieStore, Jar},
-    header::HeaderValue,
-    Url,
-};
+use eyre::bail;
+use reqwest::cookie::Jar;
 
 use super::form::login::LoginFormData;
 

@@ -1,9 +1,7 @@
 use entity::{board, board_bookmark, prelude::*, thread};
 use eyre::{bail, Result};
-use futures::future::join_all;
-use migration::{Condition, Expr, OnConflict, Query, Value};
-use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use migration::{Condition, Expr, OnConflict, Query};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use termchan_core::get::board::Board;
 

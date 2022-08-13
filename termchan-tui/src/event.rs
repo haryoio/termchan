@@ -3,12 +3,56 @@ use std::{io, time::Duration};
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use termion::{
-    event::{Event as TermionEvent, Key, MouseEvent as TermionMouseEvent},
+    event::{Event as TermionEvent, Key},
     input::TermRead,
     raw::IntoRawMode,
 };
 use tokio::sync::mpsc::{self, Receiver};
 use tui_textarea::Input;
+
+#[macro_export]
+macro_rules! ctrl {
+    ($key:pat) => {
+        Input {
+            key:  $key,
+            ctrl: true,
+            alt:  false,
+        }
+    };
+    () => {};
+}
+#[macro_export]
+macro_rules! key {
+    ($key:pat) => {
+        Input {
+            key:  $key,
+            ctrl: false,
+            alt:  false,
+        }
+    };
+}
+#[macro_export]
+macro_rules! alt {
+    ($key:pat) => {
+        Input {
+            key:  $key,
+            ctrl: false,
+            alt:  true,
+        }
+    };
+    () => {};
+}
+#[macro_export]
+macro_rules! ctrl_alt {
+    ($key:pat) => {
+        Input {
+            key:  $key,
+            ctrl: true,
+            alt:  true,
+        }
+    };
+    () => {};
+}
 
 #[derive(Debug)]
 #[allow(dead_code)]

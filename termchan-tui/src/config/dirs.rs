@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use directories::ProjectDirs;
-use eyre::{bail, Result};
+use eyre::Result;
 
 fn get_dirs() -> Option<ProjectDirs> {
     ProjectDirs::from("com", "haryoiro", "termchan")
@@ -11,7 +11,6 @@ static CONFIG_FILE_NAME: &str = "config.json";
 static CACHE_DIR_NAME: &str = "cache";
 static IMAGE_CACHE_DIR_NAME: &str = "image";
 static CACHE_FILE_NAME: &str = "cache.json";
-static DB_FILE_NAME: &str = "termchan.db";
 static LOG_FILE_NAME: &str = "termchan.log";
 
 #[cfg(target_os = "linux")]
@@ -24,6 +23,7 @@ const DATABASE_URL: &str = "sqlite:///var/tmp/termchan.db?mode=rwc";
 const DATABASE_URL: &str = "sqlite:///C:\\Windows\\Temp\\termchan.db?mode=rwc";
 
 pub struct Dir;
+#[allow(dead_code)]
 impl Dir {
     pub fn get_config_path() -> Result<PathBuf> {
         let dirs = get_dirs().unwrap();

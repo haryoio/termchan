@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{
-    url::reply::ThreadParams,
-    util::{encoding::utf8_to_sjis_string, time::unix_now_time},
-};
+use crate::util::encoding::utf8_to_sjis_string;
 
 pub struct LoginFormData {
     pub pw:    String,

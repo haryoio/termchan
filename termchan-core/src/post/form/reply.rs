@@ -6,15 +6,14 @@ use crate::{
 };
 
 pub struct ReplyFormData {
-    name:           String,
-    mail:           String,
-    message:        String,
-    bbs:            String,
-    key:            String,
-    time:           String,
-    submit:         String,
-    oekaki_thread1: String,
-    sid:            String,
+    name:    String,
+    mail:    String,
+    message: String,
+    bbs:     String,
+    key:     String,
+    time:    String,
+    submit:  String,
+    sid:     String,
 }
 
 impl ReplyFormData {
@@ -35,7 +34,6 @@ impl ReplyFormData {
             key: thread_params.thread_id.to_string(),
             time,
             submit: "書き込む".to_string(),
-            oekaki_thread1: "".to_string(),
             sid: "".to_string(),
         }
     }

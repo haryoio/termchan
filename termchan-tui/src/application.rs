@@ -4,13 +4,11 @@ use serde::{Deserialize, Serialize};
 use termchan_core::post::reply::post_reply;
 use tui_textarea::TextArea;
 
-const HEADER: &str = r#""#;
-
 use crate::{
     config::{config::Config, credentials::Account, theme::Theme},
     event::{Event, Order, Sort},
     state::{
-        bbsmenu::{self, BbsMenuStateItem},
+        bbsmenu::BbsMenuStateItem,
         board::BoardStateItem,
         bookmark::BookmarkStateItem,
         categories::CategoriesStateItem,

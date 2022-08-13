@@ -1,7 +1,7 @@
 use entity::{prelude::*, thread, thread_post};
 use eyre::Result;
 use migration::{DbErr, Expr, OnConflict};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set};
 use serde::{Deserialize, Serialize};
 use termchan_core::get::thread::Thread;
 
@@ -76,7 +76,7 @@ impl ThreadStateItem {
 
     pub async fn update_is_read(thread_id: i32) -> Result<()> {
         let db = establish_connection().await?;
-        let res = thread::Entity::update_many()
+        let _ = thread::Entity::update_many()
             .col_expr(thread::Column::IsRead, Expr::value(true))
             .filter(thread::Column::Id.eq(thread_id))
             .exec(&db)

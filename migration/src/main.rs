@@ -1,4 +1,3 @@
-use directories::ProjectDirs;
 use migration::Migrator;
 use sea_orm::Database;
 use sea_orm_migration::prelude::*;

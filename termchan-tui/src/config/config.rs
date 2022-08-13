@@ -4,21 +4,19 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use derive_more::{Display, From};
 use eyre::Result;
 use serde::{Deserialize, Serialize};
-use tui::{style::Color, widgets::BorderType as TuiBorderType};
 
 use super::{dirs::Dir, theme::Theme};
 
-#[cfg(target_os = "linux")]
-static DEFAULT_CONFIG_PATH: &str = "/etc/termchan.toml";
+// #[cfg(target_os = "linux")]
+// static DEFAULT_CONFIG_PATH: &str = "/etc/termchan.toml";
 
-#[cfg(target_os = "macos")]
-static DEFAULT_CONFIG_PATH: &str = "/usr/local/etc/termchan.toml";
+// #[cfg(target_os = "macos")]
+// static DEFAULT_CONFIG_PATH: &str = "/usr/local/etc/termchan.toml";
 
-#[cfg(target_os = "windows")]
-static DEFAULT_CONFIG_PATH: &str = "C:\\Windows\\Temp\\termchan.toml";
+// #[cfg(target_os = "windows")]
+// static DEFAULT_CONFIG_PATH: &str = "C:\\Windows\\Temp\\termchan.toml";
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Config {
@@ -69,6 +67,7 @@ user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10; rv:33.0) Gecko/2010010
     }
 }
 
+#[allow(dead_code)]
 impl Config {
     pub fn load_config() -> Result<Config> {
         let config_path = Dir::get_config_path()?;
@@ -123,7 +122,7 @@ mod test {
         config.login = true;
         config.write().unwrap();
 
-        let mut config = Config::load_config().unwrap();
+        let _ = Config::load_config().unwrap();
         println!("{}", Config::pretty_json().unwrap());
         println!("{:?}", Config::path().unwrap());
     }

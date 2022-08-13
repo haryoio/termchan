@@ -1,59 +1,24 @@
 use std::{error::Error, io, process};
 
 use termion::raw::{IntoRawMode, RawTerminal};
-use tui_textarea::{Input, Key, TextArea};
+use tui_textarea::Input;
 
 use crate::{
     application::App,
     config::cache::CacheState,
+    ctrl,
     database::logger::init_log,
     event::{event_sender, Command, Event},
+    key,
     renderer::Renderer,
     state::layout::Pane,
 };
-macro_rules! ctrl {
-    ($key:pat) => {
-        Input {
-            key:  $key,
-            ctrl: true,
-            alt:  false,
-        }
-    };
-    () => {};
-}
-macro_rules! key {
-    ($key:pat) => {
-        Input {
-            key:  $key,
-            ctrl: false,
-            alt:  false,
-        }
-    };
-}
-macro_rules! alt {
-    ($key:pat) => {
-        Input {
-            key:  $key,
-            ctrl: false,
-            alt:  true,
-        }
-    };
-    () => {};
-}
-macro_rules! ctrl_alt {
-    ($key:pat) => {
-        Input {
-            key:  $key,
-            ctrl: true,
-            alt:  true,
-        }
-    };
-    () => {};
-}
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
     // setup terminal
+    #[cfg(debug_assertions)]
     init_log("./termchan-tui.log".to_string())?;
+
     let mut render = Renderer::new(RawTerminal::from(io::stdout().into_raw_mode()?))?;
     info!("Renderer initialized");
 

@@ -27,10 +27,4 @@ impl LayoutState {
             focus_pane:       Pane::Side,
         }
     }
-    pub fn toggle_visible_sidepane(&mut self) {
-        if self.visible_sidepane {
-            self.focus_pane = Pane::Main;
-        }
-        self.visible_sidepane = !self.visible_sidepane;
-    }
 }

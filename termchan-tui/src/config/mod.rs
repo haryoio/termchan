@@ -6,7 +6,6 @@ pub mod theme;
 
 #[cfg(test)]
 mod config_test {
-    use super::*;
     use crate::config::config::Config;
 
     #[test]

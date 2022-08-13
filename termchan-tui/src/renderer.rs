@@ -1,4 +1,4 @@
-use std::{io::Write, process};
+use std::io::Write;
 
 use anyhow::Result;
 use termion::screen::AlternateScreen;

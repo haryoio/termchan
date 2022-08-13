@@ -1,11 +1,3 @@
-use std::{
-    fs::OpenOptions,
-    io::{BufReader, BufWriter},
-    path::{Path, PathBuf},
-};
-
-use derive_more::{Display, From};
-use eyre::Result;
 use serde::{Deserialize, Serialize};
 use tui::{style::Color, widgets::BorderType as TuiBorderType};
 

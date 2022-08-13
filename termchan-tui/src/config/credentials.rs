@@ -13,7 +13,7 @@ pub struct Account {
     em: Option<String>,
     pw: Option<String>,
 }
-
+#[allow(dead_code)]
 impl Account {
     pub fn new() -> Account {
         let entry = Entry::new(&KEYRING_SERVICE_NAME, &PASS_USER);
