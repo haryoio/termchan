@@ -15,7 +15,7 @@ futures = "0.3.21"
 lazy_static = "1.4.0"
 percent-encoding = "2.1.0"
 rand = "0.8.5"
-regex = "1.5.5"
+regex = "1.6.0"
 reqwest = { version = "0.11.11", features = ["gzip", "cookies", "json"] }
 serde = "1.0.136"
 serde_derive = "1.0.136"
