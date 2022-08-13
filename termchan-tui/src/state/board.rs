@@ -8,11 +8,12 @@ use sea_orm::{
     QueryFilter,
     Set,
 };
+use serde::{Deserialize, Serialize};
 use termchan_core::get::board::Board;
 
 use crate::database::connect::establish_connection;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoardStateItem {
     pub id:   i32,
     pub url:  String,

@@ -2,11 +2,12 @@ use entity::{prelude::*, thread, thread_post};
 use eyre::Result;
 use migration::{DbErr, Expr, OnConflict};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use serde::{Deserialize, Serialize};
 use termchan_core::get::thread::Thread;
 
 use crate::database::connect::establish_connection;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Serialize, Deserialize)]
 pub struct ThreadStateItem {
     pub id:           i32,
     pub index:        i32,

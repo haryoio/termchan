@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub enum LeftTabItem {
     Home,
@@ -34,7 +36,7 @@ impl Default for LeftTabItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RightTabItem {
     Thread(Title, Url),
 }
@@ -52,7 +54,7 @@ impl Default for RightTabItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabsState<T: Display + Default> {
     pub titles: Vec<T>,
     pub index:  usize,

@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use super::mylist::ListState;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatefulList<T> {
     pub state:      ListState,
     pub items:      Vec<T>,

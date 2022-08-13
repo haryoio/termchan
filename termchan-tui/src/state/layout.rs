@@ -1,4 +1,6 @@
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LayoutState {
     pub visible_sidepane: bool,
     pub visible_sideopt:  bool,
@@ -6,7 +8,7 @@ pub struct LayoutState {
     pub visible_popup:    bool,
     pub focus_pane:       Pane,
 }
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Serialize, Deserialize)]
 pub enum Pane {
     Side,
     SideOpt,

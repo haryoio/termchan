@@ -1,6 +1,7 @@
 use std::{io, time::Duration};
 
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
 use termion::{
     event::{Event as TermionEvent, Key, MouseEvent as TermionMouseEvent},
     input::TermRead,
@@ -121,7 +122,7 @@ pub async fn event_sender() -> Receiver<Command> {
     rx
 }
 
-#[derive(Debug, Clone, Display)]
+#[derive(Debug, Clone, Display, Serialize, Deserialize)]
 pub enum Sort {
     #[display(fmt = "スレ順({})", _0)]
     None(Order),
@@ -139,7 +140,7 @@ impl Default for Sort {
     }
 }
 
-#[derive(Debug, Clone, Display)]
+#[derive(Debug, Clone, Display, Serialize, Deserialize)]
 pub enum Order {
     #[display(fmt = "昇順")]
     Asc,

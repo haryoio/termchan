@@ -1,10 +1,11 @@
-use std::{error::Error, io};
+use std::{error::Error, io, process};
 
 use termion::raw::{IntoRawMode, RawTerminal};
 use tui_textarea::{Input, Key, TextArea};
 
 use crate::{
     application::App,
+    config::cache::CacheState,
     database::logger::init_log,
     event::{event_sender, Command, Event},
     renderer::Renderer,
@@ -55,12 +56,18 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
     init_log("./termchan-tui.log".to_string())?;
     let mut render = Renderer::new(RawTerminal::from(io::stdout().into_raw_mode()?))?;
     info!("Renderer initialized");
-    let mut app = App::new();
+
+    let cache = CacheState::get();
+    let mut app = match cache {
+        Some(app) => app,
+        None => App::new(),
+    };
+
     app.update(Event::Down).await?;
     app.update(Event::Up).await?;
     info!("State initialized");
 
-    loop {
+    'main: loop {
         let _ = render.render(&mut app.clone());
         let mut rx = event_sender().await;
 
@@ -70,7 +77,11 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                 match message {
                     Command::Event(evt) => {
                         match evt.into() {
-                            ctrl!(Char('q')) => render.exit()?,
+                            ctrl!(Char('q')) => {
+                                let _ = CacheState::set(app.clone());
+                                render.exit()?;
+                                break 'main;
+                            }
                             key!(Char('j')) | key!(Down) => app.update(Event::Down).await?,
                             key!(Char('k')) | key!(Up) => app.update(Event::Up).await?,
                             key!(Char('h')) | key!(Left) => app.update(Event::Left).await?,
@@ -95,6 +106,7 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                             _ => (),
                         }
 
+                        let _ = CacheState::set(app.clone());
                         let _ = render.render(&mut app.clone());
                     }
 
@@ -111,6 +123,8 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                             key!(Enter) => app.update(Event::EnableInputMode).await?,
                             _ => (),
                         }
+
+                        let _ = CacheState::set(app.clone());
                         let _ = render.render(&mut app.clone());
                     }
                     Command::Tick => {}
@@ -132,4 +146,7 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
             }
         }
     }
+
+    let _ = CacheState::set(app);
+    process::exit(0);
 }

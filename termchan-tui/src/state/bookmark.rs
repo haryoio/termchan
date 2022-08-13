@@ -4,11 +4,12 @@ use futures::future::join_all;
 use migration::{Condition, Expr, OnConflict, Query, Value};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+use serde::{Deserialize, Serialize};
 use termchan_core::get::board::Board;
 
 use crate::database::connect::establish_connection;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BookmarkStateItem {
     pub id:     i32,
     pub name:   String,

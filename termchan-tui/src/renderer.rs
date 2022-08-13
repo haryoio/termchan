@@ -22,7 +22,7 @@ impl<W: Write> Renderer<W> {
     pub fn exit(&mut self) -> Result<()> {
         self.terminal.show_cursor()?;
         self.terminal.clear()?;
-        process::exit(0);
+        Ok(())
     }
 }
 

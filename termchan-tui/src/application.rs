@@ -1,15 +1,16 @@
 use eyre::{bail, Result};
 use rayon::slice::ParallelSliceMut;
+use serde::{Deserialize, Serialize};
 use termchan_core::post::reply::post_reply;
 use tui_textarea::TextArea;
 
 const HEADER: &str = r#""#;
 
 use crate::{
-    config::Theme,
+    config::{config::Config, credentials::Account, theme::Theme},
     event::{Event, Order, Sort},
     state::{
-        bbsmenu::BbsMenuStateItem,
+        bbsmenu::{self, BbsMenuStateItem},
         board::BoardStateItem,
         bookmark::BookmarkStateItem,
         categories::CategoriesStateItem,
@@ -22,7 +23,7 @@ use crate::{
     ui::stateful_list::StatefulList,
 };
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct App<'a> {
     pub message:    String,
     pub right_tabs: TabsState<RightTabItem>,
@@ -40,26 +41,34 @@ pub struct App<'a> {
 
     pub sort: StatefulList<Sort>,
 
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub thread_textareas:       Vec<TextArea<'a>>,
     pub thread_textareas_which: usize,
+    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     pub board_textareas:        Vec<TextArea<'a>>,
     pub board_textareas_which:  usize,
 
-    pub input_mode: bool,
+    pub config: Config,
+
+    pub input_mode:     bool,
+    pub request_header: String,
 }
 
 impl App<'_> {
     pub fn new() -> Self {
+        let config = Config::load_config().unwrap();
+        let theme = config.theme.clone();
+
         let left_tabs = TabsState::new(vec![LeftTabItem::Home]);
         let right_tabs = TabsState::new(vec![]);
 
         let layout = LayoutState::new();
 
         // BBS Menuを DBに登録。
-        futures::executor::block_on(BbsMenuStateItem::init(vec![
-            "https://menu.\x35\x63\x68.net/bbsmenu.json".to_string(),
-            "https://menu.open2ch.net/bbsmenu.html".to_string(),
-        ]));
+        let bbsmenu_url_list = config.bbsmenu_url_list.clone();
+        futures::executor::block_on(BbsMenuStateItem::init(bbsmenu_url_list));
 
         //  DB中のMenuを取得。
         let init_bbsmenu = futures::executor::block_on(BbsMenuStateItem::get()).unwrap();
@@ -91,12 +100,14 @@ impl App<'_> {
         let thread_textareas = vec![TextArea::default(); 3];
         let board_textareas = vec![TextArea::default(); 4];
 
+        let request_header = config.request_header.clone();
+
         App {
             left_tabs,
             right_tabs,
             layout,
             message: "".to_string(),
-            theme: Theme::default(),
+            theme,
             home,
             bookmark,
             bbsmenu,
@@ -109,7 +120,9 @@ impl App<'_> {
             thread_textareas_which: 0,
             board_textareas,
             board_textareas_which: 0,
+            config,
             input_mode: false,
+            request_header,
         }
     }
 }
@@ -568,14 +581,14 @@ impl App<'_> {
                             };
 
                             let comment = self.thread_textareas[2].lines().join("\n");
-                            println!("{} {:?} {:?} {:?}", url, name, mail, comment);
+                            let jar = Account::new().get_jar().await?;
                             let res = post_reply(
                                 &url,
                                 &comment,
                                 name,
                                 mail,
-                                HEADER.to_string().to_string(),
-                                None,
+                                self.config.request_header.clone(),
+                                Some(jar),
                             )
                             .await;
                             match res {
@@ -611,36 +624,28 @@ impl App<'_> {
         let sort_type = self.get_sort_order();
         self.board.items.par_sort_by(|a, b| {
             match sort_type.clone() {
-                crate::event::Sort::None(order) => {
+                Sort::None(order) => {
                     match order {
-                        crate::event::Order::Asc => a.index.cmp(&b.index),
-                        crate::event::Order::Desc => b.index.cmp(&a.index),
+                        Order::Asc => a.index.cmp(&b.index),
+                        Order::Desc => b.index.cmp(&a.index),
                     }
                 }
-                crate::event::Sort::Ikioi(order) => {
+                Sort::Ikioi(order) => {
                     match order {
-                        crate::event::Order::Asc => a.ikioi.partial_cmp(&b.ikioi).unwrap(),
-                        crate::event::Order::Desc => b.ikioi.partial_cmp(&a.ikioi).unwrap(),
+                        Order::Asc => a.ikioi.partial_cmp(&b.ikioi).unwrap(),
+                        Order::Desc => b.ikioi.partial_cmp(&a.ikioi).unwrap(),
                     }
                 }
-                crate::event::Sort::Latest(order) => {
+                Sort::Latest(order) => {
                     match order {
-                        crate::event::Order::Asc => {
-                            a.created_time.partial_cmp(&b.created_time).unwrap()
-                        }
-                        crate::event::Order::Desc => {
-                            b.created_time.partial_cmp(&a.created_time).unwrap()
-                        }
+                        Order::Asc => a.created_time.partial_cmp(&b.created_time).unwrap(),
+                        Order::Desc => b.created_time.partial_cmp(&a.created_time).unwrap(),
                     }
                 }
-                crate::event::Sort::AlreadyRead(order) => {
+                Sort::AlreadyRead(order) => {
                     match order {
-                        crate::event::Order::Asc => {
-                            a.before_read.partial_cmp(&b.before_read).unwrap()
-                        }
-                        crate::event::Order::Desc => {
-                            b.before_read.partial_cmp(&a.before_read).unwrap()
-                        }
+                        Order::Asc => a.is_read.partial_cmp(&b.is_read).unwrap(),
+                        Order::Desc => b.is_read.partial_cmp(&a.is_read).unwrap(),
                     }
                 }
             }

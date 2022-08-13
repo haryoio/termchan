@@ -7,18 +7,6 @@ use reqwest::{
 
 use super::cookie::Cookies;
 
-static HEADER_STRING: &str = r#"
-sec-ch-ua: ".Not/A)Brand";v="99", "Google Chrome";v="103", "Chromium";v="103"
-sec-ch-ua-mobile: ?1
-sec-ch-ua-platform: "Android"
-sec-fetch-dest: document
-sec-fetch-mode: navigate
-sec-fetch-site: same-origin
-sec-fetch-user: ?1
-upgrade-insecure-requests: 1
-user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10; rv:33.0) Gecko/20100101 Firefox/33.0
-"#;
-
 fn string_to_map(header: &str) -> HashMap<String, String> {
     let mut map = HashMap::new();
     let mut split = header.split("\n");
@@ -34,7 +22,10 @@ fn string_to_map(header: &str) -> HashMap<String, String> {
         if key.is_none() || value.is_none() {
             continue;
         }
-        map.insert(key.unwrap().to_string(), value.unwrap().to_string());
+        map.insert(
+            key.unwrap().to_string().trim().to_string(),
+            value.unwrap().to_string().trim().to_string(),
+        );
     }
     map
 }
@@ -84,11 +75,12 @@ pub fn get_header(url: Url) -> HeaderMap {
 }
 
 pub fn map_to_headermap(map: HashMap<String, String>) -> HeaderMap {
+    println!("{:?}", map);
     let mut header = HeaderMap::new();
     for (key, value) in map {
         header.insert(
-            HeaderName::from_str(&key).expect("failed to parse header name"),
-            HeaderValue::from_str(&value).expect("failed to parse header value"),
+            HeaderName::from_str(&key.trim()).expect("failed to parse header name"),
+            HeaderValue::from_str(&value.trim()).expect("failed to parse header value"),
         );
     }
     header

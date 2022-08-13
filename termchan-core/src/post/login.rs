@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Ok;
+use eyre::{bail, Result};
 use reqwest::{
     cookie::{CookieStore, Jar},
     header::HeaderValue,
@@ -9,9 +9,10 @@ use reqwest::{
 
 use super::form::login::LoginFormData;
 
-pub async fn ronin_login(email: &str, password: &str) -> anyhow::Result<Arc<Jar>> {
-    let url = "https://login.5ch.net/log.php";
-    let host = "login.5ch.net";
+pub async fn do_login(email: &str, password: &str) -> eyre::Result<Arc<Jar>> {
+    // 申し訳程度の検索よけ
+    let url = "\x68\x74\x74\x70\x73\x3a\x2f\x2f\x6c\x6f\x67\x69\x6e\x2e\x35\x63\x68\x2e\x6e\x65\x74\x2f\x6c\x6f\x67\x2e\x70\x68\x70";
+    let host = "\x6c\x6f\x67\x69\x6e\x2e\x35\x63\x68\x2e\x6e\x65\x74";
 
     let jar = Arc::new(Jar::default());
     let client = reqwest::Client::builder()
@@ -44,27 +45,13 @@ pub async fn ronin_login(email: &str, password: &str) -> anyhow::Result<Arc<Jar>
         .await?;
 
     let html = &resp.text().await?;
-    println!("{}", html);
     if html.contains("ログインできません") {
-        return Err(anyhow::anyhow!(
-            "ERROR: login failed (email or password is wrong)"
-        ));
+        bail!("ログインできません");
     } else if html.contains("ログインしました") {
         Ok(Arc::clone(&jar))
     } else if html.contains("ログインしています") {
         Ok(Arc::clone(&jar))
     } else {
-        return Err(anyhow::anyhow!("ERROR: login failed"));
-    }
-}
-
-#[cfg(test)]
-mod login_test {
-    #[tokio::test]
-    async fn test_login() {
-        let email = "mizusecocolte@gmail.com";
-        let password = "Puruto638466!";
-        let res = super::ronin_login(password, email).await;
-        println!("{:?}", res);
+        bail!("ERROR: login failed");
     }
 }

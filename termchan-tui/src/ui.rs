@@ -2,13 +2,9 @@ pub mod layout;
 pub mod mylist;
 pub mod popup;
 pub mod stateful_list;
-use std::{borrow::BorrowMut, fmt::Display, vec};
+use std::{fmt::Display, vec};
 
 use chrono::{DateTime, NaiveDateTime, Utc};
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
 use rayon::prelude::*;
 use termchan_core::get::message::Text;
 use tui::{
@@ -20,16 +16,15 @@ use tui::{
     widgets::{Block, BorderType, Borders, Clear, Paragraph, Tabs},
     Frame,
 };
-use tui_textarea::{Input, Key, TextArea};
 
 use self::{
-    layout::{single_area, split_area, split_vertical, thread_form_area},
+    layout::{single_area, split_area, thread_form_area},
     mylist::{List, ListItem},
     popup::draw_popup,
 };
 use crate::{
     application::App,
-    config::Theme,
+    config::theme::Theme,
     state::{
         layout::Pane,
         post::ThreadPostStateItem,
@@ -367,7 +362,7 @@ fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
         .title(" ")
         .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
 
-    let mut items = app.board.items.clone();
+    let items = app.board.items.clone();
 
     let items = items
         .clone()
