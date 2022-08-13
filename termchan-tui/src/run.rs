@@ -70,24 +70,12 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                 match message {
                     Command::Event(evt) => {
                         match evt.into() {
-                            ctrl!(Char('q')) => {
-                                render.exit()?;
-                            }
-                            key!(Char('j')) | key!(Down) => {
-                                app.update(Event::Down).await?;
-                            }
-                            key!(Char('k')) | key!(Up) => {
-                                app.update(Event::Up).await?;
-                            }
-                            key!(Char('h')) | key!(Left) => {
-                                app.update(Event::Left).await?;
-                            }
-                            key!(Char('l')) | key!(Right) => {
-                                app.update(Event::Right).await?;
-                            }
-                            key!(Char('\t')) => {
-                                app.update(Event::Tab).await?;
-                            }
+                            ctrl!(Char('q')) => render.exit()?,
+                            key!(Char('j')) | key!(Down) => app.update(Event::Down).await?,
+                            key!(Char('k')) | key!(Up) => app.update(Event::Up).await?,
+                            key!(Char('h')) | key!(Left) => app.update(Event::Left).await?,
+                            key!(Char('l')) | key!(Right) => app.update(Event::Right).await?,
+                            key!(Char('\t')) => app.update(Event::Tab).await?,
                             key!(Char('r')) => {
                                 app.update(Event::Get).await?;
                                 match app.layout.focus_pane {
@@ -96,22 +84,14 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                                     _ => (),
                                 }
                             }
-                            ctrl!(Char('f')) => {
-                                app.update(Event::ToggleFilter).await?;
-                            }
-                            key!(Char('f')) => {
-                                app.update(Event::ToggleBookmark).await?;
-                            }
+                            ctrl!(Char('f')) => app.update(Event::ToggleFilter).await?,
+                            key!(Char('f')) => app.update(Event::ToggleBookmark).await?,
                             key!(Enter) => {
                                 app.update(Event::Enter).await?;
                                 app.update(Event::ScrollToTop).await?;
                             }
-                            key!(Backspace) => {
-                                app.update(Event::RemoveHistory).await?;
-                            }
-                            key!(Esc) => {
-                                app.update(Event::ClosePopup).await?;
-                            }
+                            key!(Backspace) => app.update(Event::RemoveHistory).await?,
+                            key!(Esc) => app.update(Event::ClosePopup).await?,
                             _ => (),
                         }
 
@@ -125,19 +105,10 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                 match message {
                     Command::Event(evt) => {
                         match evt.into() {
-                            key!(Esc) => {
-                                app.update(Event::ClosePopup).await?;
-                            }
-                            key!(Char('\t')) => {
-                                app.update(Event::ToggleTextArea).await?;
-                            }
-                            ctrl!(Char('s')) => {
-                                app.update(Event::Post).await?;
-                            }
-                            key!(Char('i')) => {
-                                app.update(Event::EnableInputMode).await?;
-                            }
-
+                            key!(Esc) => app.update(Event::ClosePopup).await?,
+                            key!(Char('\t')) => app.update(Event::ToggleTextArea).await?,
+                            ctrl!(Char('s')) => app.update(Event::Post).await?,
+                            key!(Enter) => app.update(Event::EnableInputMode).await?,
                             _ => (),
                         }
                         let _ = render.render(&mut app.clone());
@@ -151,9 +122,7 @@ pub async fn run() -> Result<(), Box<dyn Error>> {
                         match event.into() {
                             key!(Esc) => app.update(Event::DisableInputMode).await?,
                             ctrl!(Char('x')) => app.update(Event::ToggleTextArea).await?,
-                            input => {
-                                app.update(Event::Input(input)).await?;
-                            }
+                            input => app.update(Event::Input(input)).await?,
                         }
                         let _ = render.render(&mut app.clone());
                     }
