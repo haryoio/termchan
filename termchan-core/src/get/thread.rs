@@ -104,7 +104,7 @@ fn get_dat_url(dom: &str, subdomain: &str, board: &str, dat: &str) -> String {
 fn parse_fivenet_json<'a>(json: ThreadJson, url: &'a str) -> Result<ThreadResponse> {
     let mut thread_posts = vec![];
     for reply in json.comments {
-        let date = reply.3.parse::<i64>()?;
+        let date = decode_japan_date(&reply.3).unwrap_or(0);
         thread_posts.push(ThreadPost {
             post_id: reply.4,
             name: reply.1,
@@ -373,11 +373,10 @@ mod tests {
     async fn get_fivechan() {
         let url = "https://mevius.\x35\x63\x68.net/test/read.cgi/kao/1632530358";
         let thread = Thread::new(url.to_string()).unwrap();
-        println!("{:?}", thread);
+        // println!("{:?}", thread);
         let thread_response = thread.get().await.unwrap();
         for post in thread_response.posts {
-            println!("{}", post.message);
-            println!("{:?}", post.message);
+            println!("{:?}", post);
         }
     }
 

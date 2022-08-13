@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use tui::{
     buffer::Buffer,
     layout::{Corner, Rect},
@@ -7,7 +8,7 @@ use tui::{
 };
 use unicode_width::UnicodeWidthStr;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ListState {
     pub offset: usize,
     selected:   Option<usize>,

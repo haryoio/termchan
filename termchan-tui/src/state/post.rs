@@ -1,11 +1,12 @@
 use entity::thread_post;
 use eyre::Result;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use serde::{Deserialize, Serialize};
 use termchan_core::get::message::Message;
 
 use crate::database::connect::establish_connection;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThreadPostStateItem {
     pub id:      i32,
     pub index:   i32,

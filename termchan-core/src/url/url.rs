@@ -1,4 +1,3 @@
-
 pub trait URL {
     fn new(url: &str) -> Self;
     fn origin(&self) -> String;

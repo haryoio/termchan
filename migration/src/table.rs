@@ -40,11 +40,12 @@ pub enum BoardBookmark {
 pub enum Thread {
     Table,
     Id,
+    Index,
     Url,
     Name,
     Count,
     Ikioi,
-    UpdatedAt,
+    CreatedTime,
     /// 読み込んだことがあるか
     IsRead,
     /// Dat落ち
@@ -81,5 +82,6 @@ pub enum Image {
     Table,
     Id,
     Url,
+    Size,
     SavePath,
 }
