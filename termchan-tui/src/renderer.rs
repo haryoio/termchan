@@ -1,4 +1,4 @@
-use std::{io::Write, process};
+use std::io::Write;
 
 use anyhow::Result;
 use termion::screen::AlternateScreen;
@@ -22,15 +22,14 @@ impl<W: Write> Renderer<W> {
     pub fn exit(&mut self) -> Result<()> {
         self.terminal.show_cursor()?;
         self.terminal.clear()?;
-        self.terminal.flush()?;
-        process::exit(0);
+        Ok(())
     }
 }
 
 impl<W: Write> Drop for Renderer<W> {
     fn drop(&mut self) {
         self.terminal.show_cursor().expect("Failed to show cursor");
-        // self.terminal.clear();
+        self.terminal.clear().expect("Failed to clear screen");
         if std::thread::panicking() {
             self.terminal.clear().expect("Failed to clear screen");
         }

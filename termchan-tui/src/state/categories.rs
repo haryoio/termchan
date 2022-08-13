@@ -1,9 +1,10 @@
 use entity::category;
 use eyre::Result;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use serde::{Deserialize, Serialize};
 
 use crate::database::connect::establish_connection;
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoriesStateItem {
     pub id:   i32,
     pub name: String,

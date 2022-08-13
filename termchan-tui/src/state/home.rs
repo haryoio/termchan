@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum HomeItem {
     Bookmark,
     Settings,
@@ -17,7 +19,7 @@ impl Display for HomeItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HomeStateItem {
     pub item: HomeItem,
 }

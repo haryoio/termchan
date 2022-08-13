@@ -27,7 +27,11 @@ rayon = "1.5.3"
 unicode-width = "0.1.9"
 derive_more = "0.99.17"
 reqwest = "0.11.11"
-tui-textarea = "0.1.5"
+tui-textarea = {version = "0.1.5", features = ["termion"]}
+log4rs = { version = "1.1.1" }
+log = { version = "0.4.17" }
+directories = { version = "4.0.1" }
+keyring = { version = "1.2.0" }
 
 [dependencies.sea-orm]
 default-features = false

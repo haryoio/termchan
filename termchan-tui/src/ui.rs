@@ -13,17 +13,18 @@ use tui::{
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
-    widgets::{Block, Borders, Paragraph, Tabs},
+    widgets::{Block, BorderType, Borders, Clear, Paragraph, Tabs},
     Frame,
 };
 
 use self::{
-    layout::{single_area, split_area},
+    layout::{single_area, split_area, thread_form_area},
     mylist::{List, ListItem},
+    popup::draw_popup,
 };
 use crate::{
     application::App,
-    config::Theme,
+    config::theme::Theme,
     state::{
         layout::Pane,
         post::ThreadPostStateItem,
@@ -54,6 +55,20 @@ pub fn draw<'a, B: Backend>(f: &mut Frame<'_, B>, app: &mut App) {
     } else {
         let chunk = single_area(chunks[0]);
         draw_right_panel(f, app, chunk);
+    }
+
+    if app.layout.visible_popup {
+        let popup_block = draw_popup(f);
+        if app.layout.focus_pane == Pane::Main {
+            draw_thread_form(f, &mut app.clone(), popup_block);
+        } else if app.layout.focus_pane == Pane::Side {
+            match app.left_tabs.get() {
+                LeftTabItem::Board(..) => {
+                    draw_board_form(f, &mut app.clone(), popup_block);
+                }
+                _ => {}
+            }
+        }
     }
 
     draw_status_line(f, app, chunks[1]);
@@ -92,6 +107,7 @@ fn draw_right_panel<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
         .style(block_style);
 
     f.render_widget(block, content_chunk);
+
     draw_thread(f, &mut app.clone(), content_chunk);
 }
 
@@ -219,7 +235,7 @@ fn draw_bookmarks<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
     let block = Block::default()
         .border_type(app.theme.border_type())
         .borders(Borders::ALL)
-        .title(" Bookmark ")
+        .title(" お気に入り ")
         .title_alignment(Alignment::Center)
         .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
 
@@ -343,45 +359,15 @@ fn draw_board<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
     let block = Block::default()
         .border_type(app.theme.border_type())
         .borders(Borders::ALL)
-        .title(" Board ")
-        .title_alignment(Alignment::Center)
+        .title(" ")
         .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
 
-    let mut items = app.board.items.clone();
-    let sort_type = app.get_sort_order();
-    items.sort_by(|a, b| {
-        match sort_type.clone() {
-            crate::event::Sort::None(order) => {
-                match order {
-                    crate::event::Order::Asc => a.id.cmp(&b.id),
-                    crate::event::Order::Desc => b.id.cmp(&a.id),
-                }
-            }
-            crate::event::Sort::Ikioi(order) => {
-                match order {
-                    crate::event::Order::Asc => a.ikioi.partial_cmp(&b.ikioi).unwrap(),
-                    crate::event::Order::Desc => b.ikioi.partial_cmp(&a.ikioi).unwrap(),
-                }
-            }
-            crate::event::Sort::Latest(order) => {
-                match order {
-                    crate::event::Order::Asc => a.updated_at.partial_cmp(&b.updated_at).unwrap(),
-                    crate::event::Order::Desc => b.updated_at.partial_cmp(&a.updated_at).unwrap(),
-                }
-            }
-            crate::event::Sort::AlreadyRead(order) => {
-                match order {
-                    crate::event::Order::Asc => a.before_read.partial_cmp(&b.before_read).unwrap(),
-                    crate::event::Order::Desc => b.before_read.partial_cmp(&a.before_read).unwrap(),
-                }
-            }
-        }
-    });
+    let items = app.board.items.clone();
 
     let items = items
         .clone()
         .iter()
-        .map(|thread| list_item_from_board(thread.clone(), area.width as usize))
+        .map(|thread| list_item_from_board(thread.clone(), area.width as usize, false))
         .collect::<Vec<_>>();
 
     let list = List::new(items)
@@ -440,7 +426,7 @@ fn draw_status_line<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
     if matches!(app.left_tabs.get_current(), LeftTabItem::Board(_)) {
         //　ソートのオーダーをここに
         lines.push(Span::styled(
-            " 並び替え: Ctrl+f",
+            " 並び替え: Ctrl+f ",
             Style::default().bg(Color::White).fg(Color::Black),
         ));
         lines.push(Span::styled(
@@ -461,13 +447,25 @@ fn draw_status_line<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect)
     f.render_widget(paragraph, area);
 }
 
-fn list_item_from_board<'a>(thread: ThreadStateItem, width: usize) -> ListItem<'a> {
+fn list_item_from_board<'a>(
+    thread: ThreadStateItem,
+    width: usize,
+    show_index: bool,
+) -> ListItem<'a> {
     // let frame_width = f.size().width as usize;
     let mut row_size = 0;
     let mut row = String::new();
     let mut texts = Vec::new();
 
-    // スレッド作成時刻
+    // indexを表示
+    if show_index {
+        let index = &format!("{} ", thread.index);
+        row.push_str(index);
+        row.push(' ');
+        row_size += index.len();
+    }
+
+    // タイトルがスレッド一覧の横幅を超えたら折り返す
     for (_, c) in thread.name.chars().enumerate() {
         row.push(c);
         row_size += c.len_utf8();
@@ -479,33 +477,72 @@ fn list_item_from_board<'a>(thread: ThreadStateItem, width: usize) -> ListItem<'
     }
 
     texts.push(Spans::from(format!("{}", row)));
-    let mut last_row = thread.updated_at.to_string();
-    for _ in last_row.len()
+
+    let naive = NaiveDateTime::from_timestamp(thread.created_time, 0);
+    let date: DateTime<Utc> = DateTime::from_utc(naive, Utc);
+    let mut date = date.format("%m/%d %H:%M:%S").to_string();
+    for _ in date.len()
         ..width
             - format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string())
                 .as_str()
                 .len()
-            - 4
+            - 6
     {
-        last_row.push(' ');
+        date.push(' ');
     }
     // TODO: 勢いによって色を変える
-    last_row.push_str(format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string()).as_str());
+    date.push_str(format!("{:.2} {:>4}", thread.ikioi, &thread.count.to_string()).as_str());
+    let is_read_label = if thread.is_read { "o " } else { "  " };
+    let is_read_label = Span::styled(is_read_label, Style::default().fg(Color::LightGreen));
+
+    let ikioi = Span::styled(
+        format!("{:.2}", thread.ikioi),
+        Style::default().fg(Color::LightBlue),
+    );
+    let count = Span::styled(
+        format!(" {:>4}", thread.count.to_string()),
+        Style::default().fg(Color::LightBlue),
+    );
+
+    texts.push(Spans::from(vec![
+        is_read_label,
+        Span::styled(date, Style::default().fg(Color::Gray)),
+        ikioi,
+        count,
+    ]));
+
+    let mut hr = String::new();
+    for _ in 0..width {
+        hr.push('─');
+    }
 
     texts.push(Spans::from(Span::styled(
-        last_row,
+        hr,
         Style::default().fg(Color::Gray),
     )));
 
     ListItem::new(texts)
 }
 
+/// draw_threadで使う
+/// スレッドアイテムをパースし、ListItemに変換する
 fn list_item_from_message<'a>(thread: ThreadPostStateItem, width: usize) -> ListItem<'a> {
     let thread = thread.clone();
 
     // Spans Vector
     let mut texts = vec![];
 
+    //区切りを追加
+    let mut hr = String::new();
+    for _ in 0..width {
+        hr.push('─');
+    }
+    texts.push(Spans::from(Span::styled(
+        hr,
+        Style::default().fg(Color::Gray),
+    )));
+
+    //タイトルを追加
     let mut header_spans = vec![Span::styled(
         format!("{} ", thread.index),
         Style::default().fg(Color::Blue),
@@ -567,16 +604,74 @@ fn list_item_from_message<'a>(thread: ThreadPostStateItem, width: usize) -> List
             }
         }
     }
-
     texts.push(Spans::from(spans.clone()));
-    let mut hr = String::new();
-    for _ in 0..width {
-        hr.push('─');
-    }
 
-    texts.push(Spans::from(Span::styled(
-        hr,
-        Style::default().fg(Color::Gray),
-    )));
     ListItem::new(texts).style(Style::default().fg(Color::White))
+}
+
+fn draw_thread_form<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
+    f.render_widget(Clear, area);
+    let block = Block::default()
+        .border_type(BorderType::Rounded)
+        .borders(Borders::ALL)
+        .title(" 書き込み (Ctrl+s) ")
+        .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
+    f.render_widget(block.clone(), area);
+    let area = thread_form_area(block.inner(area));
+    let form_titles = vec!["名前", "メール", "本文"];
+    let input_mode_style = Style::default().fg(Color::LightBlue).bg(Color::Black);
+
+    for (i, ((textarea, chunk), title)) in app
+        .thread_textareas
+        .iter()
+        .zip(area)
+        .zip(form_titles)
+        .enumerate()
+    {
+        let mut textarea = textarea.clone();
+        if app.thread_textareas_which == i {
+            textarea.set_cursor_line_style(Style::default().add_modifier(Modifier::UNDERLINED));
+            textarea.set_cursor_style(Style::default().add_modifier(Modifier::REVERSED));
+
+            let b = textarea
+                .block()
+                .cloned()
+                .unwrap_or_else(|| Block::default().borders(Borders::ALL));
+            textarea.set_block(
+                b.style(if app.input_mode {
+                    input_mode_style
+                } else {
+                    Style::default()
+                })
+                .title(if app.input_mode {
+                    format!(" {} (Esc: 通常モード) ", title)
+                } else {
+                    format!(" {} (Enter: 入力モード)", title)
+                })
+                .border_type(BorderType::Rounded),
+            );
+            f.render_widget(textarea.widget(), chunk);
+        } else {
+            textarea.set_cursor_line_style(Style::default());
+            textarea.set_cursor_style(Style::default());
+            let b = textarea
+                .block()
+                .cloned()
+                .unwrap_or_else(|| Block::default().borders(Borders::ALL));
+            textarea.set_block(
+                b.style(Style::default().fg(Color::DarkGray))
+                    .title(format!(" {} (Tab: フォーム切り替え) ", title)),
+            );
+            f.render_widget(textarea.widget(), chunk);
+        }
+    }
+}
+
+fn draw_board_form<B: Backend>(f: &mut Frame<'_, B>, app: &mut App, area: Rect) {
+    let block = Block::default()
+        .border_type(app.theme.border_type())
+        .borders(Borders::ALL)
+        .title(" new thread ")
+        .style(Style::default().fg(app.theme.text).bg(app.theme.reset));
+    f.render_widget(block, area);
 }

@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub enum LeftTabItem {
     Home,
@@ -18,12 +20,12 @@ impl Display for LeftTabItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Home => write!(f, "Home"),
-            Self::Bookmarks => write!(f, "Bookmarks"),
-            Self::Bbsmenu => write!(f, "BBSmenu"),
-            Self::Categories => write!(f, "Categories"),
+            Self::Bookmarks => write!(f, "お気に入り"),
+            Self::Bbsmenu => write!(f, "板"),
+            Self::Categories => write!(f, "カテゴリ"),
             Self::Category(title) => write!(f, "{}", title),
             Self::Board(title) => write!(f, "{}", title),
-            Self::Settings => write!(f, "Settings"),
+            Self::Settings => write!(f, "設定"),
         }
     }
 }
@@ -34,7 +36,7 @@ impl Default for LeftTabItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RightTabItem {
     Thread(Title, Url),
 }
@@ -52,7 +54,7 @@ impl Default for RightTabItem {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TabsState<T: Display + Default> {
     pub titles: Vec<T>,
     pub index:  usize,

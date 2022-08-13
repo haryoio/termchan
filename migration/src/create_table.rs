@@ -109,6 +109,7 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
+                    .col(ColumnDef::new(Thread::Index).integer().not_null())
                     .col(ColumnDef::new(Thread::Name).string().not_null())
                     .col(ColumnDef::new(Thread::Url).string().not_null().unique_key())
                     .col(ColumnDef::new(Thread::Count).integer().not_null())
@@ -131,7 +132,7 @@ impl MigrationTrait for Migration {
                             .not_null()
                             .default(0),
                     )
-                    .col(ColumnDef::new(Thread::UpdatedAt).timestamp_with_time_zone())
+                    .col(ColumnDef::new(Thread::CreatedTime).integer())
                     .col(ColumnDef::new(Thread::BoardId).integer().not_null())
                     .foreign_key(
                         ForeignKeyCreateStatement::new()
@@ -176,7 +177,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-
+        // Image Schema
         manager
             .create_table(
                 Table::create()
@@ -191,6 +192,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(Image::SavePath).string().not_null())
                     .col(ColumnDef::new(Image::Url).string().not_null().unique_key())
+                    .col(ColumnDef::new(Image::Size).integer().not_null())
                     .to_owned(),
             )
             .await?;

@@ -5,7 +5,6 @@ edition = "2021"
 authors = ["Haryoiro"]
 license = "Apache-2.0"
 
-
 [dependencies]
 unicode-segmentation = "1.9.0"
 anyhow = "1.0.56"

@@ -7,11 +7,12 @@ use entity::{
 use eyre::Result;
 use migration::OnConflict;
 use sea_orm::{ColumnTrait, EntityTrait, InsertResult, QueryFilter, Set};
+use serde::{Deserialize, Serialize};
 use termchan_core::get::bbsmenu::Bbsmenu;
 
 use crate::database::connect::establish_connection;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BbsMenuStateItem {
     pub id:  i32,
     pub url: String,

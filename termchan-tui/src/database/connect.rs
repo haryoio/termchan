@@ -1,34 +1,22 @@
-use std::env;
-
-use dotenv::dotenv;
-use eyre::{bail, Error, Result};
-use migration::{
-    async_trait::{self, async_trait},
-    DbErr,
-    Migrator,
-    MigratorTrait,
-};
+use eyre::{bail, Result};
+use migration::{Migrator, MigratorTrait};
 use sea_orm::{Database, DbConn};
 
-#[cfg(target_os = "linux")]
-const DATABASE_URL: &str = "sqlite:///var/tmp/termchan.db?mode=rwc";
+use crate::config::dirs::Dir;
 
-#[cfg(target_os = "macos")]
-const DATABASE_URL: &str = "sqlite:///var/tmp/termchan.db?mode=rwc";
+pub async fn establish_connection() -> Result<DbConn> {
+    let path = match Dir::get_db_path() {
+        Ok(path) => path,
+        Err(e) => {
+            error!("{}", e);
+            bail!(e);
+        }
+    };
 
-#[cfg(target_os = "windows")]
-const DATABASE_URL: &str = "sqlite:///C:\\Windows\\Temp\\termchan.db?mode=rwc";
+    let db = Database::connect(path).await?;
+    Migrator::up(&db, None).await?;
 
-pub async fn establish_connection() -> Result<DbConn, DbErr> {
-    dotenv().ok();
-
-    let db = Database::connect(DATABASE_URL)
-        .await
-        .expect("Failed to setup the database");
-
-    Migrator::up(&db, None)
-        .await
-        .expect("Failed to run migrations for tests");
+    info!("Database connection established");
 
     Ok(db)
 }

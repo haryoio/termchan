@@ -1,46 +1,7 @@
 use serde::{Deserialize, Serialize};
 use tui::{style::Color, widgets::BorderType as TuiBorderType};
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct Config {
-    pub bbsmenu_url_list: Vec<String>,
-
-    /// サムネイルのサイズ(wip)
-    /// small | medium | large
-    /// default: small
-    /// small: 16x10
-    /// medium: 32x20
-    /// large: 48x30
-    pub thumbnail_size: ThumbnailSize,
-
-    /// サムネイルのキャッシュサイズ(MB)
-    /// 100MB以上推奨
-    pub thumbnail_cache_size: String,
-
-    /// 画像や書き込みのキャッシュを保存するディレクトリを指定。
-    /// Windows
-    ///  C:\Users\username\AppData\Local\Temp\termchan\cache
-    /// MacOS / Linux
-    ///  /var/tmp/termchan/cache
-    pub cache_dir: String,
-
-    pub theme: Theme,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            bbsmenu_url_list: vec![],
-
-            thumbnail_size:       ThumbnailSize::Small,
-            thumbnail_cache_size: "100M".to_string(),
-            cache_dir:            "/var/tmp/termchan/cache".to_string(),
-            theme:                Theme::default(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum BorderType {
     Plain,
     Rounded,
@@ -48,14 +9,14 @@ pub enum BorderType {
     Thick,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum ThumbnailSize {
     Small,
     Medium,
     Large,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Theme {
     pub status_bar:   Color,
     pub error_border: Color,

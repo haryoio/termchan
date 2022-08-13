@@ -6,16 +6,17 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "thread")]
 pub struct Model {
     #[sea_orm(primary_key)]
-    pub id:          i32,
-    pub name:        String,
-    pub url:         String,
-    pub count:       i32,
-    pub ikioi:       Option<f64>,
-    pub stopdone:    bool,
-    pub is_read:     bool,
-    pub before_read: i32,
-    pub updated_at:  Option<String>,
-    pub board_id:    i32,
+    pub id:           i32,
+    pub index:        i32,
+    pub name:         String,
+    pub url:          String,
+    pub count:        i32,
+    pub ikioi:        Option<f64>,
+    pub stopdone:     bool,
+    pub is_read:      bool,
+    pub before_read:  i32,
+    pub created_time: Option<i64>,
+    pub board_id:     i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

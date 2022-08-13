@@ -17,6 +17,7 @@ pub async fn create_thread(
     message: &str,
     name: Option<&str>,
     mail: Option<&str>,
+    header_str: &str,
 ) -> anyhow::Result<String> {
     let client = reqwest::Client::new();
     let board_params = BoardParams::new(url);
@@ -27,7 +28,7 @@ pub async fn create_thread(
     cookies.add("yuki", "akari");
     cookies.add("READJS", "\"off\"");
 
-    let header = post_header(Url::from_str(url).unwrap(), cookies);
+    let header = post_header(Url::from_str(url).unwrap(), cookies, header_str.to_string());
 
     let res = client
         .post(board_params.build_post())

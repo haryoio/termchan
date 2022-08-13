@@ -6,24 +6,26 @@ use crate::util::encoding::sjis_to_utf8;
 
 #[derive(Debug, Clone)]
 pub struct ThreadSubject {
-    pub board_name: String,
-    pub name:       String,
-    pub id:         String,
-    pub url:        String,
-    pub count:      i32,
-    pub ikioi:      f64,
-    pub created_at: DateTime<Tz>,
+    pub id:           String,
+    pub index:        i32,
+    pub board_name:   String,
+    pub name:         String,
+    pub url:          String,
+    pub count:        i32,
+    pub ikioi:        f64,
+    pub created_time: DateTime<Tz>,
 }
 impl Default for ThreadSubject {
     fn default() -> Self {
         ThreadSubject {
-            board_name: "".to_string(),
-            name:       "".to_string(),
-            id:         "".to_string(),
-            url:        "".to_string(),
-            count:      0,
-            ikioi:      0.0,
-            created_at: Tokyo.timestamp(0, 0),
+            id:           "".to_string(),
+            index:        0,
+            board_name:   "".to_string(),
+            name:         "".to_string(),
+            url:          "".to_string(),
+            count:        0,
+            ikioi:        0.0,
+            created_time: Tokyo.timestamp(0, 0),
         }
     }
 }
@@ -69,7 +71,9 @@ impl Board {
 fn parse_board_dat(dat: &str, board: &Board) -> Result<Vec<ThreadSubject>> {
     let mut thread_subjects: Vec<ThreadSubject> = Vec::new();
     let mut lines = dat.split('\n');
+    let mut index = 0;
     loop {
+        index += 1;
         let line = match lines.next() {
             Some(line) => line,
             None => break,
@@ -110,8 +114,9 @@ fn parse_board_dat(dat: &str, board: &Board) -> Result<Vec<ThreadSubject>> {
         // rep_count / ((now - first_rep) / 86400)
 
         let now = Utc::now().with_timezone(&Tokyo).timestamp() as usize;
-        let created_at = Tokyo.timestamp(id.parse::<i64>().context(eyre!(" {}", line.clone()))?, 0);
-        let first_resp: usize = created_at.timestamp() as usize;
+        let created_time =
+            Tokyo.timestamp(id.parse::<i64>().context(eyre!(" {}", line.clone()))?, 0);
+        let first_resp: usize = created_time.timestamp() as usize;
 
         let ikioi = if now >= first_resp {
             count as f64 / ((now - first_resp) as f64 / 86400.0)
@@ -120,13 +125,14 @@ fn parse_board_dat(dat: &str, board: &Board) -> Result<Vec<ThreadSubject>> {
         };
 
         thread_subjects.push(ThreadSubject {
-            board_name: board.name.clone(),
             id,
+            index,
+            board_name: board.name.clone(),
             name,
             url,
             count,
             ikioi,
-            created_at,
+            created_time,
         });
     }
     Ok(thread_subjects)
@@ -140,6 +146,16 @@ mod tests {
     #[tokio::test]
     async fn test_parse_dat() {
         let url = "https://agree.\x35\x63\x68.net/operate/";
+        let board = Board::new(url.to_string()).unwrap();
+        let subjects = board.get().await.unwrap();
+        for subject in subjects {
+            println!("{:?}", subject);
+        }
+    }
+
+    #[tokio::test]
+    async fn test_parse_() {
+        let url = "https://mi.\x35\x63\x68.net/news4vip/";
         let board = Board::new(url.to_string()).unwrap();
         let subjects = board.get().await.unwrap();
         for subject in subjects {
