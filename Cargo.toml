@@ -16,3 +16,16 @@ path = "./termchan-tui/src/bin/termchan.rs"
 
 [workspace]
 members = ["termchan-core", "termchan-tui", "entity", "migration"]
+
+[profile.dev]
+debug = true
+
+[profile.release]
+opt-level = 3
+lto = true
+debug = false
+overflow-checks = false
+
+[profile.test]
+opt-level = 3
+debug = true

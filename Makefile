@@ -4,6 +4,11 @@ ERROR_LOG =termchan.log
 DB_FILE=termchan.db
 DB_PATH=/var/tmp/
 
+
+.PHONY: build
+build:
+	cargo build --release --bin termchan
+
 .PHONY: deps
 deps:
 	cargo install sea-orm-cli
