@@ -8,7 +8,7 @@ license = "Apache-2.0"
 [dependencies]
 unicode-segmentation = "1.9.0"
 anyhow = "1.0.61"
-chrono = "0.4.21"
+chrono = "0.4.22"
 chrono-tz = "0.6.1"
 encoding_rs = "0.8.30"
 futures = "0.3.21"
