@@ -14,7 +14,7 @@ tui = { version = "0.18.0", features = ["serde", "termion"] }
 serde = { version = "1.0.138", features = ["derive"] }
 serde_json = "1.0.82"
 termchan-core = { path = "../termchan-core" }
-anyhow = "1.0.56"
+anyhow = "1.0.61"
 tokio = { version = "1.20.1", features = ["full"] }
 clap = { version = "3.2.8" }
 futures = "0.3.21"
