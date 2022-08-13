@@ -9,7 +9,6 @@ use reqwest::{
 
 use super::form::login::LoginFormData;
 
-
 pub async fn ronin_login(email: &str, password: &str) -> anyhow::Result<Arc<Jar>> {
     let url = "https://login.5ch.net/log.php";
     let host = "login.5ch.net";
@@ -32,7 +31,7 @@ pub async fn ronin_login(email: &str, password: &str) -> anyhow::Result<Arc<Jar>
 
     // ログイン画面のフォームデータを生成
     let email = email.replace("@", "%40");
-    let form_data = LoginFormData::new(&email, password).build();
+    let form_data = LoginFormData::new(password, &email).build();
     // ログインリクエスト用のURLを生成
     let post_url = format!("https://{}/log.php", host);
     let resp = client
