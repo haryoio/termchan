@@ -11,7 +11,7 @@ path = "src/lib.rs"
 [dependencies]
 tokio = { version = "1.20.4", features = ["full"] }
 async-trait =  "0.1.57"
-sea-orm = "0.9.1"
+sea-orm = "0.12.3"
 directories = "4.0.1"
 
 [dependencies.sea-orm-migration]
