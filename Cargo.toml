@@ -8,7 +8,7 @@ license = "Apache-2.0"
 [dependencies]
 termchan-core = {path ="./termchan-core"}
 termchan-tui = {path ="./termchan-tui"}
-tokio = { version = "1.20.1", features = ["full"] }
+tokio = { version = "1.20.4", features = ["full"] }
 
 [[bin]]
 name = "termchan"
